@@ -8,9 +8,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Park&amp;Speech">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%230c1620'/%3E%3Cpath d='M40 96 Q60 40 76 96 T112 96 T148 96' fill='none' stroke='%2336d6c3' stroke-width='10' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Park&amp;Speech</title>
-<link rel="manifest" href='data:application/json,{"name":"Park%26Speech","short_name":"Park%26Speech","start_url":".","display":"standalone","background_color":"%230c1620","theme_color":"%230c1620","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 192 192%27%3E%3Crect width=%27192%27 height=%27192%27 rx=%2742%27 fill=%27%230c1620%27/%3E%3Cpath d=%27M40 96 Q60 40 76 96 T112 96 T148 96%27 fill=%27none%27 stroke=%27%2336d6c3%27 stroke-width=%2710%27 stroke-linecap=%27round%27/%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml"}]}'>
+<link rel="manifest" href="manifest.json">
 <style>
   :root{
     --bg:#0c1620; --bg2:#10202c; --panel:#13212d; --panel2:#0f1a24;
@@ -39,6 +39,9 @@
   input[type=text]{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:11px;color:var(--ink);
     font-size:18px;padding:13px 14px;font-family:var(--sans)}
   input[type=text]:focus{outline:none;border-color:var(--teal-dim)}
+  select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:11px;color:var(--ink);
+    font-size:18px;padding:13px 14px;font-family:var(--sans);-webkit-appearance:none;appearance:none}
+  select:focus{outline:none;border-color:var(--teal-dim)}
   .row{display:flex;gap:10px}
   .row>*{flex:1}
   button{font-family:var(--sans);cursor:pointer;border:none}
@@ -131,12 +134,21 @@
       </div>
       <label>Codice paziente (per lo storico)</label>
       <input type="text" id="pId" placeholder="es. iniziali + anno · RM1962" autocomplete="off">
+      <label style="margin-top:14px">Stanza</label>
+      <div class="row">
+        <select id="roomSel"></select>
+        <button class="btn sec" id="roomAdd" title="Nuova stanza" style="flex:0 0 auto;width:auto;padding:0 20px;font-size:22px">＋</button>
+      </div>
+      <div class="row" id="roomNewRow" style="display:none;margin-top:8px">
+        <input type="text" id="roomNew" placeholder="Nome nuova stanza" autocomplete="off">
+        <button class="btn" id="roomSave" style="flex:0 0 auto;width:auto;padding:0 18px">OK</button>
+      </div>
     </div>
 
     <div class="card">
       <label>Modalità</label>
       <div class="seg" id="segMode">
-        <button data-mode="batt" class="on">Batteria guidata</button>
+        <button data-mode="batt" class="on">Test in serie</button>
         <button data-mode="single">Test singolo</button>
       </div>
       <p class="hint" id="modeHint">4 test in sequenza con istruzioni e riepilogo finale.</p>
@@ -164,7 +176,7 @@
 
       <div class="lvwrap"><div class="lvbar"><div class="lvfill" id="lvfill"></div></div></div>
       <div class="liverow">
-        <div class="livecell"><div class="v" id="liveDb">–</div><div class="k">dB rel.</div></div>
+        <div class="livecell"><div class="v" id="liveDb">–</div><div class="k">Livello</div></div>
         <div class="livecell"><div class="v" id="liveHz">–</div><div class="k">Hz</div></div>
         <div class="livecell"><div class="v" id="liveT">0.0</div><div class="k">secondi</div></div>
       </div>
@@ -218,6 +230,7 @@
       <button class="btn sec" id="histCsv">Esporta tutto (CSV)</button>
       <button class="btn ghost" id="histBack">Indietro</button>
     </div>
+    <button class="btn sec" id="histDel" style="margin-top:10px;color:var(--bad);border-color:#3a2530">Cancella storico</button>
   </section>
 
   <!-- INFO -->
@@ -314,7 +327,7 @@ const TESTS = [
     durMax:15, minDur:1.2, metrics:["f0min","f0max","range","f0"] },
 ];
 const METRIC_INFO = {
-  peakDb:{k:"Picco", u:"dB"}, meanDb:{k:"Intensità media", u:"dB"},
+  peakDb:{k:"Livello picco", u:""}, meanDb:{k:"Livello medio", u:""},
   mpt:{k:"Durata (MPT)", u:"s"}, trend:{k:"Tenuta intensità", u:""},
   f0:{k:"Tono medio", u:"Hz"}, f0sd:{k:"Stabilità tono", u:"Hz"},
   jitter:{k:"Jitter*", u:"%"}, shimmer:{k:"Shimmer*", u:"%"}, hnr:{k:"HNR*", u:"dB"},
@@ -386,6 +399,7 @@ function corr(b,lag){ let s=0; const lim=b.length-lag; for(let i=0;i<lim;i++) s+
 
 const dbfs = rms => 20*Math.log10(Math.max(rms,1e-7)); // negative
 const norm01 = db => Math.max(0, Math.min(1, (db+60)/55));  // -60..-5 dBFS -> 0..1
+const livello = db => (db>-90 ? Math.round(norm01(db)*100) : 0); // 0..100, leggibile
 
 /* ============================ RUNNER ============================ */
 const $ = id => document.getElementById(id);
@@ -415,7 +429,14 @@ $("rArm").addEventListener("click", async ()=>{
   setStatus("armed", '<span class="dot pulse"></span>In attesa della voce…');
   loop();
 });
-$("rStop").addEventListener("click", ()=>{ if(runState==="rec") finalize(); });
+$("rStop").addEventListener("click", ()=>{
+  if(runState==="rec"){ finalize(); }
+  else if(runState==="armed"){
+    stopLoop();
+    $("rArm").style.display=""; $("rStop").disabled=true;
+    $("rStatus").className="status"; $("rStatus").textContent="Premi “Pronto” e inizia a vocalizzare";
+  }
+});
 $("rAbort").addEventListener("click", ()=>{ stopLoop(); backOut(); });
 
 function setStatus(cls,html){ const s=$("rStatus"); s.className="status "+(cls||""); s.innerHTML=html; }
@@ -431,7 +452,7 @@ function loop(){
   const now = ac.currentTime;
   // live UI
   $("lvfill").style.width = (norm01(db)*100).toFixed(0)+"%";
-  $("liveDb").textContent = db>-90 ? db.toFixed(0) : "–";
+  $("liveDb").textContent = db>-90 ? livello(db) : "–";
   $("liveHz").textContent = f0>0 ? f0.toFixed(0) : "–";
   pushScope(norm01(db), f0);
 
@@ -522,7 +543,7 @@ function finalize(){
 function fmt(test, key, m){
   const v = m[key];
   switch(key){
-    case "peakDb": case "meanDb": return v.toFixed(0);
+    case "peakDb": case "meanDb": return livello(v);
     case "mpt": return v.toFixed(1);
     case "f0": case "f0sd": case "f0min": case "f0max": return v.toFixed(0);
     case "range": return v.toFixed(1);
@@ -534,8 +555,8 @@ function fmt(test, key, m){
 }
 function trendTag(slope){
   if(slope> -0.4 && slope<0.4) return {cls:"g", txt:"stabile"};
-  if(slope<=-0.4) return {cls: slope<=-1.2?"b":"w", txt:`calante ${slope.toFixed(1)} dB/s`};
-  return {cls:"g", txt:`crescente ${slope.toFixed(1)} dB/s`};
+  if(slope<=-0.4) return {cls: slope<=-1.2?"b":"w", txt:"calante ↓"};
+  return {cls:"g", txt:"crescente ↑"};
 }
 
 function showResult(test, m){
@@ -570,13 +591,13 @@ $("resNext").addEventListener("click", ()=>{
 
 /* ============================ SUMMARY ============================ */
 function keyEsito(id,m){
-  if(id==="max") return `picco ${m.peakDb.toFixed(0)} dB`;
+  if(id==="max") return `livello picco ${livello(m.peakDb)}/100`;
   if(id==="forte"||id==="normale"){ const t=trendTag(m.trendSlope); return `MPT ${m.mpt.toFixed(1)} s · ${t.txt}`; }
   if(id==="glissando") return `${m.range.toFixed(1)} semit. (${m.f0min.toFixed(0)}–${m.f0max.toFixed(0)} Hz)`;
   return "–";
 }
 function buildSummary(){
-  $("sumMeta").innerHTML = `<b>${(session.nome||"")+" "+(session.cognome||"")}</b>${session.id?" · "+session.id:""}<br>${new Date(session.datetime).toLocaleString("it-IT")}`;
+  $("sumMeta").innerHTML = `<b>${(session.nome||"")+" "+(session.cognome||"")}</b>${session.id?" · "+session.id:""}<br>${session.stanza?session.stanza+" · ":""}${new Date(session.datetime).toLocaleString("it-IT")}`;
   const body=$("sumBody"); body.innerHTML="";
   queue.forEach(id=>{
     const t=TESTS.find(x=>x.id===id), m=session.results[id];
@@ -586,8 +607,8 @@ function buildSummary(){
   // dynamic range note (forte vs normale)
   let note="* Jitter / Shimmer / HNR: stime su microfono di telefono — utili come trend, non come valori assoluti certificati.";
   const f=session.results.forte, n=session.results.normale;
-  if(f&&n){ const dr=(f.meanDb-n.meanDb).toFixed(0);
-    note = `Range dinamico forte − normale: <b style="color:var(--teal)">${dr} dB</b>. `+note; }
+  if(f&&n){ const dr=livello(f.meanDb)-livello(n.meanDb);
+    note = `Range dinamico forte − normale: <b style="color:var(--teal)">${dr} punti</b> di livello. `+note; }
   $("sumNote").innerHTML = note;
   showView("vSum");
 }
@@ -612,22 +633,22 @@ $("sumCopy").addEventListener("click", ()=>{
 $("sumCsv").addEventListener("click", ()=> downloadCsv([session], `voce_${session.id||"paz"}.csv`));
 
 function textReport(s){
-  let o=`ANALISI VOCE — ${s.nome||""} ${s.cognome||""} ${s.id?"("+s.id+")":""}\n${new Date(s.datetime).toLocaleString("it-IT")}\n`;
+  let o=`PARK&SPEECH — ${s.nome||""} ${s.cognome||""} ${s.id?"("+s.id+")":""}\n${s.stanza?"Stanza: "+s.stanza+"\n":""}${new Date(s.datetime).toLocaleString("it-IT")}\n`;
   queue.forEach(id=>{ const t=TESTS.find(x=>x.id===id),m=s.results[id]; if(!m)return;
     o+=`\n• ${t.titolo}: ${keyEsito(id,m)}`;
-    o+=`\n   intensità media ${m.meanDb.toFixed(0)} dB · tono ${m.f0.toFixed(0)} Hz`;
+    o+=`\n   livello medio ${livello(m.meanDb)}/100 · tono ${m.f0.toFixed(0)} Hz`;
     if(t.metrics.includes("jitter")) o+=` · jitter ${m.jitter.toFixed(2)}% · shimmer ${m.shimmer.toFixed(2)}% · HNR ${m.hnr.toFixed(1)} dB`;
   });
   return o;
 }
 
-const CSV_COLS=["data","paziente","codice","test","mpt_s","meanDb","peakDb","f0_hz","f0sd_hz","f0min","f0max","range_semit","trend_dbs","jitter_pct","shimmer_pct","hnr_db"];
+const CSV_COLS=["data","stanza","paziente","codice","test","mpt_s","meanDb","peakDb","f0_hz","f0sd_hz","f0min","f0max","range_semit","trend_dbs","jitter_pct","shimmer_pct","hnr_db"];
 function csvRows(sessions){
   const rows=[CSV_COLS.join(",")];
   sessions.forEach(s=>{
     const order = Object.keys(s.results);
     order.forEach(id=>{ const m=s.results[id]; if(!m)return;
-      const r=[ new Date(s.datetime).toISOString(), `${s.nome||""} ${s.cognome||""}`.trim(), s.id||"",
+      const r=[ new Date(s.datetime).toISOString(), s.stanza||"", `${s.nome||""} ${s.cognome||""}`.trim(), s.id||"",
         id, num(m.mpt), num(m.meanDb), num(m.peakDb), num(m.f0), num(m.f0sd), num(m.f0min), num(m.f0max),
         num(m.range), num(m.trendSlope), num(m.jitter), num(m.shimmer), num(m.hnr) ];
       rows.push(r.map(csvCell).join(","));
@@ -649,6 +670,20 @@ $("goInfo").addEventListener("click", ()=> showView("vInfo"));
 $("infoBack").addEventListener("click", ()=> showView("vHome"));
 $("histBack").addEventListener("click", ()=> showView("vHome"));
 $("histCsv").addEventListener("click", ()=>{ const a=loadAll(); if(!a.length) return toast("Storico vuoto"); downloadCsv(a,"voce_storico.csv"); });
+
+let delArmed=false, delTimer;
+$("histDel").addEventListener("click", ()=>{
+  const b=$("histDel");
+  if(!delArmed){
+    if(!loadAll().length) return toast("Storico già vuoto");
+    delArmed=true; b.textContent="Tocca ancora per CANCELLARE TUTTO"; b.style.background="#3a2530";
+    delTimer=setTimeout(()=>{ delArmed=false; b.textContent="Cancella storico"; b.style.background=""; }, 4000);
+  } else {
+    clearTimeout(delTimer); delArmed=false; b.textContent="Cancella storico"; b.style.background="";
+    localStorage.removeItem(KEY); toast("Storico cancellato"); renderHist();
+  }
+});
+
 function renderHist(){
   const all=loadAll(), list=$("histList"); list.innerHTML="";
   if(!all.length){ list.innerHTML='<p class="hint">Nessuna sessione salvata.</p>'; }
@@ -656,7 +691,7 @@ function renderHist(){
     const main = s.results.normale||s.results.forte||Object.values(s.results)[0]||{};
     list.insertAdjacentHTML("beforeend",
       `<div class="hrow"><div><div class="hn">${(s.nome||"")+" "+(s.cognome||"")}</div>
-       <div class="hd">${new Date(s.datetime).toLocaleString("it-IT")}${s.id?" · "+s.id:""}</div></div>
+       <div class="hd">${new Date(s.datetime).toLocaleString("it-IT")}${s.stanza?" · "+s.stanza:""}${s.id?" · "+s.id:""}</div></div>
        <div class="hv">${main.mpt?main.mpt.toFixed(1)+" s":"–"}</div></div>`);
   });
   showView("vHist");
@@ -720,7 +755,7 @@ TESTS.forEach(t=>{
 function beginSession(){
   const nome=$("pNome").value.trim(), cognome=$("pCognome").value.trim();
   if(!nome && !cognome){ toast("Inserisci almeno il nome del paziente"); return false; }
-  session={ nome, cognome, id:$("pId").value.trim(), datetime:Date.now(), results:{} };
+  session={ nome, cognome, id:$("pId").value.trim(), stanza:$("roomSel").value||"", datetime:Date.now(), results:{} };
   return true;
 }
 $("goStart").addEventListener("click",()=>{
@@ -728,7 +763,31 @@ $("goStart").addEventListener("click",()=>{
   mode="batt"; queue=TESTS.map(t=>t.id); qIdx=0;
   startTest(TESTS[0]);
 });
-function backOut(){ if(mode==="single") showView("vHome"); else showView("vHome"); }
+function backOut(){ showView("vHome"); }
+
+/* ============================ STANZE ============================ */
+const RKEY="voce_rooms", RSEL="voce_room_sel";
+function loadRooms(){ try{ const r=JSON.parse(localStorage.getItem(RKEY)); return Array.isArray(r)&&r.length?r:["Studio 1"]; }catch{ return ["Studio 1"]; } }
+function saveRooms(r){ localStorage.setItem(RKEY, JSON.stringify(r)); }
+function renderRooms(sel){
+  const rooms=loadRooms(), s=$("roomSel"); s.innerHTML="";
+  rooms.forEach(name=>{ const o=document.createElement("option"); o.value=name; o.textContent=name; s.appendChild(o); });
+  const chosen = sel || localStorage.getItem(RSEL) || rooms[0];
+  s.value = rooms.includes(chosen)?chosen:rooms[0];
+}
+$("roomSel").addEventListener("change", ()=> localStorage.setItem(RSEL, $("roomSel").value));
+$("roomAdd").addEventListener("click", ()=>{
+  const row=$("roomNewRow"); row.style.display = row.style.display==="none"?"flex":"none";
+  if(row.style.display==="flex") $("roomNew").focus();
+});
+$("roomSave").addEventListener("click", ()=>{
+  const name=$("roomNew").value.trim();
+  if(!name) return toast("Scrivi un nome");
+  const rooms=loadRooms(); if(!rooms.includes(name)) rooms.push(name);
+  saveRooms(rooms); localStorage.setItem(RSEL,name);
+  $("roomNew").value=""; $("roomNewRow").style.display="none"; renderRooms(name); toast("Stanza aggiunta");
+});
+renderRooms();
 
 /* ============================ TOAST ============================ */
 let toastTimer;
