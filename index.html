@@ -222,7 +222,6 @@
     </div>
     <button class="btn" id="sumSave">Salva nello storico</button>
     <button class="btn ghost" id="sumHist" style="margin-top:10px;display:none">Vai allo storico</button>
-    <button class="btn sec" id="sumMail" style="margin-top:10px">Invia via email al medico</button>
     <div class="row" style="margin-top:10px">
       <button class="btn sec" id="sumCopy">Copia riepilogo</button>
       <button class="btn sec" id="sumCsv">Esporta CSV</button>
@@ -236,11 +235,11 @@
       <div class="ttitle" style="font-size:22px">Storico</div>
       <div class="hist" id="histList"></div>
     </div>
-    <div class="row">
+    <button class="btn" id="histMail">Invia storico via email al medico</button>
+    <div class="row" style="margin-top:10px">
       <button class="btn sec" id="histCsv">Esporta tutto (CSV)</button>
       <button class="btn ghost" id="histBack">Indietro</button>
     </div>
-    <button class="btn sec" id="histDel" style="margin-top:10px;color:var(--bad);border-color:#3a2530">Cancella storico</button>
   </section>
 
   <!-- INFO / SETTINGS -->
@@ -777,13 +776,6 @@ $("sumCopy").addEventListener("click", ()=>{
   navigator.clipboard.writeText(textReport(session)).then(()=>toast("Riepilogo copiato")).catch(()=>toast("Copia non riuscita"));
 });
 $("sumCsv").addEventListener("click", ()=> downloadCsv([session], `voce_${session.id||"paz"}.csv`));
-$("sumMail").addEventListener("click", ()=>{
-  const to=(SET.medicoEmail||"").trim();
-  if(!to) toast("Suggerimento: imposta l'email del medico in Impostazioni");
-  const subj=`Park&Speech — ${(session.nome||"")} ${(session.cognome||"")} · ${new Date(session.datetime).toLocaleDateString("it-IT")}`.trim();
-  const body=textReport(session)+"\n\n(Referto generato da Park&Speech)";
-  window.location.href=`mailto:${to}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
-});
 
 function textReport(s){
   let o=`PARK&SPEECH — ${s.nome||""} ${s.cognome||""} ${s.id?"("+s.id+")":""}\n${s.stanza?"Stanza: "+s.stanza+"\n":""}${new Date(s.datetime).toLocaleString("it-IT")}\n`;
@@ -825,17 +817,34 @@ $("infoBackTop").addEventListener("click", ()=> showView("vHome"));
 $("histBack").addEventListener("click", ()=> showView("vHome"));
 $("histCsv").addEventListener("click", ()=>{ const a=loadAll(); if(!a.length) return toast("Storico vuoto"); downloadCsv(a,"voce_storico.csv"); });
 
-let delArmed=false, delTimer;
-$("histDel").addEventListener("click", ()=>{
-  const b=$("histDel");
-  if(!delArmed){
-    if(!loadAll().length) return toast("Storico già vuoto");
-    delArmed=true; b.textContent="Tocca ancora per CANCELLARE TUTTO"; b.style.background="#3a2530";
-    delTimer=setTimeout(()=>{ delArmed=false; b.textContent="Cancella storico"; b.style.background=""; }, 4000);
-  } else {
-    clearTimeout(delTimer); delArmed=false; b.textContent="Cancella storico"; b.style.background="";
-    localStorage.removeItem(KEY); toast("Storico cancellato"); renderHist();
-  }
+function historyReport(all){
+  let o="PARK&SPEECH — Storico ("+all.length+" sessioni)\n";
+  all.forEach(s=>{
+    const runs=getRuns(s);
+    const main=runs.find(r=>r.id==="normale")||runs.find(r=>r.id==="forte")||runs[0]||{m:{}};
+    const mpt = main.m&&main.m.mpt ? main.m.mpt.toFixed(1)+"s" : "–";
+    o+=`\n${new Date(s.datetime).toLocaleString("it-IT")} · ${(s.nome||"")+" "+(s.cognome||"")}`.trimEnd()
+      +`${s.id?" ("+s.id+")":""}${s.stanza?" · "+s.stanza:""} · MPT ${mpt}`;
+  });
+  return o;
+}
+$("histMail").addEventListener("click", async ()=>{
+  const all=loadAll(); if(!all.length) return toast("Storico vuoto");
+  const to=(SET.medicoEmail||"").trim();
+  const csv=csvRows(all);
+  // 1) Prova condivisione nativa con CSV allegato (mobile)
+  try{
+    const file=new File([csv],"parkspeech_storico.csv",{type:"text/csv"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title:"Park&Speech — storico", text: to?("Per il medico: "+to):"Storico Park&Speech" });
+      return;
+    }
+  }catch(e){ /* annullato o non supportato: passa al mailto */ }
+  // 2) Fallback: email con riepilogo testuale (mailto non allega file)
+  if(!to) toast("Suggerimento: imposta l'email del medico in Impostazioni");
+  const subj="Park&Speech — storico ("+all.length+" sessioni)";
+  const body=historyReport(all)+"\n\n(Dettaglio completo nel CSV esportabile dall'app.)";
+  window.location.href=`mailto:${to}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
 });
 
 function renderHist(){
