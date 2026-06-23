@@ -149,14 +149,8 @@
       <label>Codice paziente (per lo storico)</label>
       <input type="text" id="pId" placeholder="es. iniziali + anno · RM1962" autocomplete="off">
       <label style="margin-top:14px">Stanza</label>
-      <div class="row">
-        <select id="roomSel"></select>
-        <button class="btn sec" id="roomAdd" title="Nuova stanza" style="flex:0 0 auto;width:auto;padding:0 20px;font-size:22px">＋</button>
-      </div>
-      <div class="row" id="roomNewRow" style="display:none;margin-top:8px">
-        <input type="text" id="roomNew" placeholder="Nome nuova stanza" autocomplete="off">
-        <button class="btn" id="roomSave" style="flex:0 0 auto;width:auto;padding:0 18px">OK</button>
-      </div>
+      <select id="roomSel"></select>
+      <p class="hint">Le stanze si creano e si gestiscono in Impostazioni.</p>
     </div>
 
     <div class="card">
@@ -944,17 +938,6 @@ function renderRooms(sel){
   s.value = rooms.includes(chosen)?chosen:rooms[0];
 }
 $("roomSel").addEventListener("change", ()=> localStorage.setItem(RSEL, $("roomSel").value));
-$("roomAdd").addEventListener("click", ()=>{
-  const row=$("roomNewRow"); row.style.display = row.style.display==="none"?"flex":"none";
-  if(row.style.display==="flex") $("roomNew").focus();
-});
-$("roomSave").addEventListener("click", ()=>{
-  const name=$("roomNew").value.trim();
-  if(!name) return toast("Scrivi un nome");
-  const rooms=loadRooms(); if(!rooms.includes(name)) rooms.push(name);
-  saveRooms(rooms); localStorage.setItem(RSEL,name);
-  $("roomNew").value=""; $("roomNewRow").style.display="none"; renderRooms(name); toast("Stanza aggiunta");
-});
 renderRooms();
 
 /* ============================ IMPOSTAZIONI ============================ */
