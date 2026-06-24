@@ -789,22 +789,24 @@ function textReport(s){
 }
 
 const CSV_COLS=["data","stanza","paziente","codice","test","ripetizione","mpt_s","meanDb","peakDb","f0_hz","f0sd_hz","f0min","f0max","range_semit","trend_dbs","jitter_pct","shimmer_pct","hnr_db"];
+const CSV_SEP=";";
 function csvRows(sessions){
-  const rows=[CSV_COLS.join(",")];
+  const rows=[CSV_COLS.join(CSV_SEP)];
   sessions.forEach(s=>{
     getRuns(s).forEach(r=>{ const m=r.m; if(!m)return;
       const row=[ new Date(s.datetime).toISOString(), s.stanza||"", `${s.nome||""} ${s.cognome||""}`.trim(), s.id||"",
         r.id, r.rep||1, num(m.mpt), num(m.meanDb), num(m.peakDb), num(m.f0), num(m.f0sd), num(m.f0min), num(m.f0max),
         num(m.range), num(m.trendSlope), num(m.jitter), num(m.shimmer), num(m.hnr) ];
-      rows.push(row.map(csvCell).join(","));
+      rows.push(row.map(csvCell).join(CSV_SEP));
     });
   });
-  return rows.join("\n");
+  return rows.join("\r\n");
 }
-const num = v => (typeof v==="number" && isFinite(v)) ? Math.round(v*100)/100 : "";
-const csvCell = v => /[",\n]/.test(String(v)) ? '"'+String(v).replace(/"/g,'""')+'"' : v;
+// numeri con virgola decimale (Excel IT)
+const num = v => (typeof v==="number" && isFinite(v)) ? String(Math.round(v*100)/100).replace(".", ",") : "";
+const csvCell = v => /[;"\r\n]/.test(String(v)) ? '"'+String(v).replace(/"/g,'""')+'"' : v;
 function downloadCsv(sessions,name){
-  const blob=new Blob([csvRows(sessions)],{type:"text/csv"});
+  const blob=new Blob(["\uFEFF"+csvRows(sessions)],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),2000); toast("CSV esportato");
 }
@@ -831,10 +833,10 @@ function historyReport(all){
 $("histMail").addEventListener("click", async ()=>{
   const all=loadAll(); if(!all.length) return toast("Storico vuoto");
   const to=(SET.medicoEmail||"").trim();
-  const csv=csvRows(all);
+  const csv="\uFEFF"+csvRows(all);
   // 1) Prova condivisione nativa con CSV allegato (mobile)
   try{
-    const file=new File([csv],"parkspeech_storico.csv",{type:"text/csv"});
+    const file=new File([csv],"parkspeech_storico.csv",{type:"text/csv;charset=utf-8"});
     if(navigator.canShare && navigator.canShare({files:[file]})){
       await navigator.share({ files:[file], title:"Park&Speech — storico", text: to?("Per il medico: "+to):"Storico Park&Speech" });
       return;
