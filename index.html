@@ -833,20 +833,30 @@ function historyReport(all){
 $("histMail").addEventListener("click", async ()=>{
   const all=loadAll(); if(!all.length) return toast("Storico vuoto");
   const to=(SET.medicoEmail||"").trim();
-  const csv="\uFEFF"+csvRows(all);
-  // 1) Prova condivisione nativa con CSV allegato (mobile)
-  try{
-    const file=new File([csv],"parkspeech_storico.csv",{type:"text/csv;charset=utf-8"});
-    if(navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({ files:[file], title:"Park&Speech — storico", text: to?("Per il medico: "+to):"Storico Park&Speech" });
+  const fname="parkspeech_storico.csv";
+  const file=new File(["\uFEFF"+csvRows(all)], fname, {type:"text/csv"});
+
+  // 1) Mobile: condivisione nativa col SOLO file (niente testo, o Gmail scarta l'allegato).
+  //    Si apre il pannello di condivisione: scegli Gmail e il CSV resta allegato.
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({ files:[file], title:"Park&Speech — storico" });
       return;
+    }catch(e){
+      if(e && e.name==="AbortError") return; // annullato: non aprire altro
+      // altri errori: passo al fallback qui sotto
     }
-  }catch(e){ /* annullato o non supportato: passa al mailto */ }
-  // 2) Fallback: email con riepilogo testuale (mailto non allega file)
-  if(!to) toast("Suggerimento: imposta l'email del medico in Impostazioni");
+  }
+
+  // 2) Dove non c'è la condivisione file (es. desktop): SCARICO sempre il CSV (azione garantita),
+  //    poi provo ad aprire la mail già indirizzata. Il toast avvisa comunque dell'avvenuto download.
+  downloadCsv(all, fname);
   const subj="Park&Speech — storico ("+all.length+" sessioni)";
-  const body=historyReport(all)+"\n\n(Dettaglio completo nel CSV esportabile dall'app.)";
-  window.location.href=`mailto:${to}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+  const body=historyReport(all)+"\n\nIl file "+fname+" è stato scaricato: allegalo a questa email.";
+  setTimeout(()=>{
+    try{ window.location.href=`mailto:${to}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`; }catch(e){}
+  }, 800);
+  toast(to ? "CSV scaricato — allegalo alla mail aperta" : "CSV scaricato — imposta l'email del medico in Impostazioni");
 });
 
 function renderHist(){
