@@ -176,15 +176,9 @@
   <section id="vSingle" class="view">
     <button class="btn ghost" id="singleBack" style="margin-bottom:14px">← Menu</button>
     <div class="card">
-      <label>Paziente</label>
-      <div class="row" style="margin-bottom:10px">
-        <input type="text" id="nomeS" placeholder="Nome" autocomplete="off">
-        <input type="text" id="cognomeS" placeholder="Cognome" autocomplete="off">
-      </div>
-      <label>Codice paziente</label>
-      <input type="text" id="idS" placeholder="es. RM1962" autocomplete="off">
-      <label style="margin-top:14px">Stanza</label>
+      <label>Stanza</label>
       <select id="roomS" class="roomsel"></select>
+      <p class="hint">Nome e codice del paziente verranno chiesti al salvataggio.</p>
     </div>
     <div class="card">
       <label>Scegli il test</label>
@@ -196,15 +190,9 @@
   <section id="vSerie" class="view">
     <button class="btn ghost" id="serieBack" style="margin-bottom:14px">← Menu</button>
     <div class="card">
-      <label>Paziente</label>
-      <div class="row" style="margin-bottom:10px">
-        <input type="text" id="nomeR" placeholder="Nome" autocomplete="off">
-        <input type="text" id="cognomeR" placeholder="Cognome" autocomplete="off">
-      </div>
-      <label>Codice paziente</label>
-      <input type="text" id="idR" placeholder="es. RM1962" autocomplete="off">
-      <label style="margin-top:14px">Stanza</label>
+      <label>Stanza</label>
       <select id="roomR" class="roomsel"></select>
+      <p class="hint">Nome e codice del paziente verranno chiesti al salvataggio.</p>
     </div>
     <div class="card">
       <div class="ttitle" style="font-size:20px">Test in serie</div>
@@ -274,6 +262,15 @@
       <div class="meta" id="sumMeta"></div>
       <table class="summ"><thead><tr><th>Test</th><th style="text-align:right">Esito chiave</th></tr></thead><tbody id="sumBody"></tbody></table>
       <p class="hint" id="sumNote"></p>
+    </div>
+    <div class="card" id="savePatCard" style="display:none">
+      <label>Paziente</label>
+      <div class="row" style="margin-bottom:10px">
+        <input type="text" id="nomeF" placeholder="Nome" autocomplete="off">
+        <input type="text" id="cognomeF" placeholder="Cognome" autocomplete="off">
+      </div>
+      <label>Codice paziente</label>
+      <input type="text" id="idF" placeholder="es. RM1962" autocomplete="off">
     </div>
     <button class="btn" id="sumSave">Salva nello storico</button>
     <button class="btn ghost" id="sumHist" style="margin-top:10px;display:none">Vai allo storico</button>
@@ -839,9 +836,17 @@ function keyEsito(id,m){
   if(id==="glissando"){ const st=m.stages||[]; const ok=st.filter(s=>s.pass).length; return `${ok}/${st.length} fasi mantenute`; }
   return "–";
 }
+function sumMetaHtml(){
+  const nome=`${(session.nome||"")} ${(session.cognome||"")}`.trim();
+  const who = nome ? `<b>${nome}</b>${session.id?" · "+session.id:""}` : `<b style="color:var(--muted)">Paziente da inserire al salvataggio</b>`;
+  return `${who}<br>${session.stanza?session.stanza+" · ":""}${new Date(session.datetime).toLocaleString("it-IT")}`;
+}
 function buildSummary(){
+  // reset stato salvataggio
+  saveArmed=false; $("savePatCard").style.display="none";
+  $("sumSave").textContent="Salva nello storico"; $("sumSave").disabled=false;
   $("sumHist").style.display="none";
-  $("sumMeta").innerHTML = `<b>${(session.nome||"")+" "+(session.cognome||"")}</b>${session.id?" · "+session.id:""}<br>${session.stanza?session.stanza+" · ":""}${new Date(session.datetime).toLocaleString("it-IT")}`;
+  $("sumMeta").innerHTML = sumMetaHtml();
   const body=$("sumBody"); body.innerHTML="";
   session.runs.forEach(r=>{
     const t=TESTS.find(x=>x.id===r.id); if(!t) return;
@@ -865,11 +870,26 @@ const KEY="voce_sessions_v1";
 const loadAll = ()=>{ try{ return JSON.parse(localStorage.getItem(KEY))||[] }catch{ return [] } };
 const saveAll = a => localStorage.setItem(KEY, JSON.stringify(a));
 
+let saveArmed=false;
 $("sumSave").addEventListener("click", ()=>{
+  if(!saveArmed){
+    $("savePatCard").style.display="";
+    $("nomeF").value=session.nome||""; $("cognomeF").value=session.cognome||""; $("idF").value=session.id||"";
+    $("sumSave").textContent="Conferma e salva";
+    saveArmed=true; $("nomeF").focus();
+    $("savePatCard").scrollIntoView({behavior:"smooth",block:"center"});
+    return;
+  }
+  const nome=$("nomeF").value.trim(), cognome=$("cognomeF").value.trim();
+  if(!nome && !cognome){ toast("Inserisci almeno il nome del paziente"); $("nomeF").focus(); return; }
+  session.nome=nome; session.cognome=cognome; session.id=$("idF").value.trim();
+  $("sumMeta").innerHTML = sumMetaHtml();
   const all=loadAll();
   const slim = JSON.parse(JSON.stringify(session));
   (slim.runs||[]).forEach(r=>{ delete r.m._frames; });
   all.unshift(slim); saveAll(all);
+  saveArmed=false; $("savePatCard").style.display="none";
+  $("sumSave").textContent="Salvato ✓"; $("sumSave").disabled=true;
   $("sumHist").style.display="";
   toast("Sessione salvata");
 });
@@ -1040,19 +1060,14 @@ function drawSpark(cv, fr){
 }
 
 /* ============================ MENU / FLUSSI ============================ */
-function readPatient(sfx){
-  const nome=$("nome"+sfx).value.trim(), cognome=$("cognome"+sfx).value.trim();
-  if(!nome && !cognome){ toast("Inserisci almeno il nome del paziente"); return null; }
-  return { nome, cognome, id:$("id"+sfx).value.trim(), stanza:$("room"+sfx).value||"" };
-}
-function newSession(p){ session={ nome:p.nome, cognome:p.cognome, id:p.id, stanza:p.stanza, datetime:Date.now(), runs:[] }; }
+function newSession(stanza){ session={ nome:"", cognome:"", id:"", stanza:stanza||"", datetime:Date.now(), runs:[] }; }
 
 // build single test list
 const sl=$("singleList");
 TESTS.forEach(t=>{
   const el=document.createElement("button"); el.className="titem";
   el.innerHTML=`<span class="n">${t.n}</span><span><span class="tt">${t.titolo}</span><span class="td">${t.istruzione.replace(/<[^>]+>/g,"")}</span></span>`;
-  el.addEventListener("click",()=>{ const p=readPatient("S"); if(!p) return; newSession(p); mode="single"; queue=[t.id]; qIdx=0; startTest(t); });
+  el.addEventListener("click",()=>{ newSession($("roomS").value); mode="single"; queue=[t.id]; qIdx=0; startTest(t); });
   sl.appendChild(el);
 });
 
@@ -1066,9 +1081,8 @@ function updateSerieHint(){
   $("serieHint").textContent = names.length ? "Sequenza: "+names.join(" · ") : "Nessun test attivo — configuralo in Impostazioni.";
 }
 $("serieStart").addEventListener("click",()=>{
-  const p=readPatient("R"); if(!p) return;
   const q=buildQueue(); if(!q.length) return toast("Nessun test attivo");
-  newSession(p); mode="batt"; queue=q; qIdx=0; startTest(TESTS.find(t=>t.id===queue[0]));
+  newSession($("roomR").value); mode="batt"; queue=q; qIdx=0; startTest(TESTS.find(t=>t.id===queue[0]));
 });
 function backOut(){ showView(mode==="single"?"vSingle":"vSerie"); }
 
