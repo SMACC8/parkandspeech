@@ -149,6 +149,9 @@
   .tcol{flex:1;min-width:0}
   .tcol .tlab{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:3px;text-align:center}
   .scope.tall{height:340px}
+  .tcolors{display:flex;gap:5px;align-items:center;margin-left:2px}
+  .cch{width:24px;height:24px;border-radius:7px;border:2px solid transparent;cursor:pointer;padding:0;flex:0 0 auto}
+  .cch.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink) inset}
   .stagebar{display:flex;justify-content:space-between;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin-bottom:8px}
   .stagebar .sl{font-weight:600}.stagebar .sr{font-family:var(--num);font-weight:600}
 </style>
@@ -489,7 +492,7 @@ const THEME_ORDER = ["notte","ambra","indaco","foresta","chiaro"];
 
 const DEF_SET = { display:"livello", theme:"notte", orient:"paziente", onsetNorm:-38, onsetLoud:-30, medicoEmail:"", maxDur:3,
   serie:{ order:["max","forte","normale","glissando"], active:{max:true,forte:true,normale:true,glissando:true}, reps:{max:1,forte:1,normale:1,glissando:1} },
-  tono:{ stages:[ {fmin:100,fmax:150,tmin:3,tmax:5}, {fmin:150,fmax:220,tmin:3,tmax:5}, {fmin:220,fmax:300,tmin:3,tmax:5} ] } };
+  tono:{ stages:[ {fmin:100,fmax:150,tmin:3,tmax:5,color:"verde"}, {fmin:150,fmax:220,tmin:3,tmax:5,color:"azzurro"}, {fmin:220,fmax:300,tmin:3,tmax:5,color:"rosa"} ] } };
 const SKEY="voce_settings";
 let SET = loadSet();
 function loadSet(){
@@ -500,6 +503,7 @@ function loadSet(){
     if(!Array.isArray(out.serie.order)||out.serie.order.length!==4) out.serie.order=DEF_SET.serie.order.slice();
     out.tono=Object.assign({},DEF_SET.tono,s.tono||{});
     if(!Array.isArray(out.tono.stages)||!out.tono.stages.length) out.tono.stages=JSON.parse(JSON.stringify(DEF_SET.tono.stages));
+    out.tono.stages.forEach((s,i)=>{ if(!s.color) s.color=["verde","azzurro","rosa"][i%3]; });
     if(typeof out.maxDur!=="number") out.maxDur=DEF_SET.maxDur;
     return out;
   }catch{ return JSON.parse(JSON.stringify(DEF_SET)); }
@@ -515,6 +519,9 @@ function applyTheme(id){
   const meta=document.querySelector('meta[name="theme-color"]'); if(meta) meta.content=t.bg;
 }
 function hexA(hex,a){ const n=hex.replace("#",""); const r=parseInt(n.substring(0,2),16),g=parseInt(n.substring(2,4),16),b=parseInt(n.substring(4,6),16); return `rgba(${r},${g},${b},${a})`; }
+const BAND_COLORS={ verde:"#3ddc84", azzurro:"#49b6ff", rosa:"#ff6fae" };
+const bandColor = name => BAND_COLORS[name] || BAND_COLORS.verde;
+function niceStep(x){ for(const s of [10,20,25,50,100,200,250,500,1000]) if(s>=x) return s; return 1000; }
 
 /* display-mode helpers (dB vs intensità 0-100) */
 const intVal = db => SET.display==="db" ? Math.round(db) : livello(db);
@@ -726,7 +733,7 @@ function compute(test, fr){
         else run=0;
         prevT=t;
       }
-      return { fmin:st.fmin, fmax:st.fmax, tmin:st.tmin, tmax:st.tmax, hold:best, pass:best>=st.tmin };
+      return { fmin:st.fmin, fmax:st.fmax, tmin:st.tmin, tmax:st.tmax, color:st.color, hold:best, pass:best>=st.tmin };
     });
   }
 
@@ -791,8 +798,9 @@ function showResult(test, m, rep){
     g.style.gridTemplateColumns="1fr";
     (m.stages||[]).forEach((st,i)=>{
       const col = st.pass?"good":"bad";
+      const dot = `<span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${bandColor(st.color)};margin-right:7px;vertical-align:middle"></span>`;
       g.insertAdjacentHTML("beforeend",
-        `<div class="stagebar"><span class="sl">Fase ${i+1} · ${st.fmin}–${st.fmax} Hz</span>
+        `<div class="stagebar"><span class="sl">${dot}Fase ${i+1} · ${st.fmin}–${st.fmax} Hz</span>
          <span class="sr" style="color:var(--${col})">${st.hold.toFixed(1)}s / ${st.tmin}s ${st.pass?"✓":"✗"}</span></div>`);
     });
     const ok=(m.stages||[]).filter(s=>s.pass).length;
@@ -1022,27 +1030,30 @@ function drawScope(){
 }
 function drawScopeTono(w,h){
   const stages=SET.tono.stages;
-  const FMIN=60, FMAX=Math.max(400, Math.max(...stages.map(s=>s.fmax))*1.15);
+  const lo=Math.min(...stages.map(s=>s.fmin)), hi=Math.max(...stages.map(s=>s.fmax));
+  const range=Math.max(1,hi-lo), pad=Math.max(10,range*0.12);
+  const FMIN=Math.max(0, lo-pad), FMAX=hi+pad;
   const yOf=f=> (h-14) - (f-FMIN)/(FMAX-FMIN)*(h-26);
-  // gridlines + Hz labels
-  const step = FMAX>520?100:50;
-  sctx.font="10px "+"monospace"; sctx.textBaseline="alphabetic";
+  // gridlines + Hz labels (passo adattivo)
+  const step=niceStep((FMAX-FMIN)/6);
+  sctx.textBaseline="alphabetic";
   for(let f=Math.ceil(FMIN/step)*step; f<=FMAX; f+=step){
     const yy=yOf(f); sctx.strokeStyle=CLINE; sctx.globalAlpha=.45;
     sctx.beginPath(); sctx.moveTo(0,yy); sctx.lineTo(w,yy); sctx.stroke(); sctx.globalAlpha=1;
-    sctx.fillStyle=CMUTED; sctx.fillText(f+" Hz", w-42, yy-2);
+    sctx.fillStyle=CMUTED; sctx.font="10px monospace"; sctx.fillText(Math.round(f)+" Hz", w-46, yy-2);
   }
-  // target bands
+  // target bands (colore per fascia)
   stages.forEach((st,i)=>{
+    const c=bandColor(st.color);
     const yTop=yOf(st.fmax), yBot=yOf(st.fmin);
-    sctx.fillStyle=CTEALA; sctx.fillRect(0,yTop,w,yBot-yTop);
-    sctx.strokeStyle=CTEAL; sctx.globalAlpha=.5; sctx.strokeRect(0.5,yTop,w-1,yBot-yTop); sctx.globalAlpha=1;
-    sctx.fillStyle=CTEAL; sctx.font="11px monospace";
+    sctx.fillStyle=hexA(c,.20); sctx.fillRect(0,yTop,w,yBot-yTop);
+    sctx.strokeStyle=c; sctx.globalAlpha=.7; sctx.strokeRect(0.5,yTop,w-1,yBot-yTop); sctx.globalAlpha=1;
+    sctx.fillStyle=c; sctx.font="11px monospace";
     sctx.fillText(`F${i+1} · ${st.fmin}-${st.fmax}Hz · ${st.tmin}s`, 6, yTop+13);
   });
   // live f0 line
   sctx.beginPath(); let started=false;
-  scopeHist.forEach((p,i)=>{ if(p.f0>0){ const yy=yOf(Math.min(p.f0,FMAX)); if(!started){sctx.moveTo(i,yy);started=true;} else sctx.lineTo(i,yy);} else started=false; });
+  scopeHist.forEach((p,i)=>{ if(p.f0>0){ const yy=yOf(Math.min(Math.max(p.f0,FMIN),FMAX)); if(!started){sctx.moveTo(i,yy);started=true;} else sctx.lineTo(i,yy);} else started=false; });
   sctx.strokeStyle=CLIVE; sctx.lineWidth=2.5; sctx.stroke();
 }
 function drawSpark(cv, fr){
@@ -1206,20 +1217,24 @@ function renderTono(){
       <div class="tcol"><span class="tlab">Hz min</span><input class="tin" type="number" inputmode="numeric" data-k="fmin" value="${st.fmin}"></div>
       <div class="tcol"><span class="tlab">Hz max</span><input class="tin" type="number" inputmode="numeric" data-k="fmax" value="${st.fmax}"></div>
       <div class="tcol"><span class="tlab">sec min</span><input class="tin" type="number" inputmode="numeric" data-k="tmin" value="${st.tmin}"></div>
-      <div class="tcol"><span class="tlab">sec max</span><input class="tin" type="number" inputmode="numeric" data-k="tmax" value="${st.tmax}"></div>`;
+      <div class="tcol"><span class="tlab">sec max</span><input class="tin" type="number" inputmode="numeric" data-k="tmax" value="${st.tmax}"></div>
+      <div class="tcolors">
+        ${["verde","azzurro","rosa"].map(c=>`<button class="cch${st.color===c?" on":""}" data-c="${c}" style="background:${bandColor(c)}" title="${c}"></button>`).join("")}
+      </div>`;
     const x=document.createElement("button"); x.className="xbtn"; x.textContent="×";
     x.addEventListener("click",()=>{ if(SET.tono.stages.length<=1) return toast("Serve almeno una fase"); SET.tono.stages.splice(i,1); saveSet(); renderTono(); });
     row.appendChild(x);
     row.querySelectorAll(".tin").forEach(inp=> inp.addEventListener("change",()=>{
       const v=Math.max(0,Math.round(+inp.value||0)); st[inp.dataset.k]=v; saveSet();
     }));
+    row.querySelectorAll(".cch").forEach(ch=> ch.addEventListener("click",()=>{ st.color=ch.dataset.c; saveSet(); renderTono(); }));
     box.appendChild(row);
   });
 }
 $("tonoAdd").addEventListener("click",()=>{
   if(SET.tono.stages.length>=5) return toast("Massimo 5 fasi");
   const last=SET.tono.stages[SET.tono.stages.length-1]||{fmax:150,tmin:3,tmax:5};
-  SET.tono.stages.push({ fmin:last.fmax, fmax:Math.round(last.fmax*1.4), tmin:last.tmin, tmax:last.tmax });
+  SET.tono.stages.push({ fmin:last.fmax, fmax:Math.round(last.fmax*1.4), tmin:last.tmin, tmax:last.tmax, color:["verde","azzurro","rosa"][SET.tono.stages.length%3] });
   saveSet(); renderTono();
 });
 
