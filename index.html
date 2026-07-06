@@ -129,6 +129,28 @@
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
   .foot{font-size:12px;color:var(--muted);text-align:center;margin-top:20px;line-height:1.6}
   a.lnk{color:var(--teal);text-decoration:none}
+  /* menu */
+  .menu{display:grid;gap:12px;margin-top:6px}
+  .mbtn{display:flex;align-items:center;gap:16px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);
+    border-radius:16px;padding:19px 18px;color:var(--ink);font-size:20px;font-weight:650;transition:.15s}
+  .mbtn:active{transform:scale(.99);border-color:var(--teal-dim)}
+  .mbtn .mi{width:46px;height:46px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:var(--panel2);border:1px solid var(--line);border-radius:13px}
+  .mbtn .mi svg{width:25px;height:25px;stroke:var(--teal);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .mbtn .msub{display:block;font-size:13px;color:var(--muted);font-weight:500;margin-top:2px}
+  /* crono */
+  .crono{text-align:center;padding:30px 18px}
+  .croDisp{font-family:var(--num);font-size:64px;font-weight:600;letter-spacing:1px;color:var(--teal);line-height:1;margin:10px 0 6px;font-variant-numeric:tabular-nums}
+  .croDisp .cs{font-size:32px;color:var(--muted)}
+  .croLbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:2px}
+  /* tono stages */
+  .tstage{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px}
+  .tstage .si{font-family:var(--num);color:var(--teal);font-weight:700;width:18px;flex:0 0 auto;text-align:center}
+  .tin{width:100%;min-width:0;background:var(--bg2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:15px;padding:8px 4px;text-align:center;font-family:var(--num)}
+  .tcol{flex:1;min-width:0}
+  .tcol .tlab{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:3px;text-align:center}
+  .scope.tall{height:340px}
+  .stagebar{display:flex;justify-content:space-between;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin-bottom:8px}
+  .stagebar .sl{font-weight:600}.stagebar .sr{font-family:var(--num);font-weight:600}
 </style>
 </head>
 <body>
@@ -138,39 +160,72 @@
     <h1>Park&amp;Speech<small>Fonazione sostenuta · supporto logopedico</small></h1>
   </header>
 
-  <!-- HOME -->
-  <section id="vHome" class="view on">
+  <!-- MENU -->
+  <section id="vMenu" class="view on">
+    <div class="menu">
+      <button class="mbtn" id="mSingle"><span class="mi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5" fill="var(--teal)" stroke="none"/></svg></span><span>Test singolo<span class="msub">Un esercizio a scelta</span></span></button>
+      <button class="mbtn" id="mSerie"><span class="mi"><svg viewBox="0 0 24 24"><path d="M8 6h11M8 12h11M8 18h11"/><circle cx="4" cy="6" r="1.5" fill="var(--teal)" stroke="none"/><circle cx="4" cy="12" r="1.5" fill="var(--teal)" stroke="none"/><circle cx="4" cy="18" r="1.5" fill="var(--teal)" stroke="none"/></svg></span><span>Test in serie<span class="msub">Sequenza guidata di esercizi</span></span></button>
+      <button class="mbtn" id="mCrono"><span class="mi"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 13V9M9 2h6"/></svg></span><span>Cronometro<span class="msub">Timer digitale</span></span></button>
+      <button class="mbtn" id="mHist"><span class="mi"><svg viewBox="0 0 24 24"><path d="M3.1 12a9 9 0 1 0 2.7-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 8v4.5l3 1.7"/></svg></span><span>Storico<span class="msub">Sessioni salvate</span></span></button>
+      <button class="mbtn" id="mInfo"><span class="mi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M4 12h3M17 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2"/></svg></span><span>Impostazioni e info<span class="msub">Temi, soglie, stanze, riferimenti</span></span></button>
+    </div>
+    <p class="foot" style="margin-top:24px;color:var(--teal);font-weight:600;letter-spacing:.4px">Svilu<span style="color:var(--live)">PPA</span>ta da Sergio&nbsp;Moro</p>
+  </section>
+
+  <!-- TEST SINGOLO -->
+  <section id="vSingle" class="view">
+    <button class="btn ghost" id="singleBack" style="margin-bottom:14px">← Menu</button>
     <div class="card">
       <label>Paziente</label>
       <div class="row" style="margin-bottom:10px">
-        <input type="text" id="pNome" placeholder="Nome" autocomplete="off">
-        <input type="text" id="pCognome" placeholder="Cognome" autocomplete="off">
+        <input type="text" id="nomeS" placeholder="Nome" autocomplete="off">
+        <input type="text" id="cognomeS" placeholder="Cognome" autocomplete="off">
       </div>
-      <label>Codice paziente (per lo storico)</label>
-      <input type="text" id="pId" placeholder="es. iniziali + anno · RM1962" autocomplete="off">
+      <label>Codice paziente</label>
+      <input type="text" id="idS" placeholder="es. RM1962" autocomplete="off">
       <label style="margin-top:14px">Stanza</label>
-      <select id="roomSel"></select>
-      <p class="hint">Le stanze si creano e si gestiscono in Impostazioni.</p>
+      <select id="roomS" class="roomsel"></select>
     </div>
-
     <div class="card">
-      <label>Modalità</label>
-      <div class="seg" id="segMode">
-        <button data-mode="batt" class="on">Test in serie</button>
-        <button data-mode="single">Test singolo</button>
-      </div>
-      <p class="hint" id="modeHint">4 test in sequenza con istruzioni e riepilogo finale.</p>
-
-      <div id="singleList" class="testlist" style="display:none"></div>
-
-      <button class="btn lg" id="goStart" style="margin-top:14px">Avvia</button>
-      <p class="hint">Tieni il telefono a <b style="color:var(--teal)">~30&nbsp;cm</b> dalla bocca, stessa distanza ogni volta. La misura parte da sola quando senti la voce.</p>
+      <label>Scegli il test</label>
+      <div id="singleList" class="testlist"></div>
     </div>
+  </section>
 
-    <button class="btn ghost" id="goHist">Storico sessioni</button>
-    <button class="btn ghost" id="goInfo" style="margin-top:10px">Impostazioni e Info</button>
-    <p class="foot">Strumento di monitoraggio, non dispositivo medico diagnostico.<br>Misure relative (dBFS), confrontabili nel tempo sullo stesso setup.</p>
-    <p class="foot" style="margin-top:18px;color:var(--teal);font-weight:600;letter-spacing:.4px">Svilu<span style="color:var(--live)">PPA</span>ta da Sergio&nbsp;Moro</p>
+  <!-- TEST IN SERIE -->
+  <section id="vSerie" class="view">
+    <button class="btn ghost" id="serieBack" style="margin-bottom:14px">← Menu</button>
+    <div class="card">
+      <label>Paziente</label>
+      <div class="row" style="margin-bottom:10px">
+        <input type="text" id="nomeR" placeholder="Nome" autocomplete="off">
+        <input type="text" id="cognomeR" placeholder="Cognome" autocomplete="off">
+      </div>
+      <label>Codice paziente</label>
+      <input type="text" id="idR" placeholder="es. RM1962" autocomplete="off">
+      <label style="margin-top:14px">Stanza</label>
+      <select id="roomR" class="roomsel"></select>
+    </div>
+    <div class="card">
+      <div class="ttitle" style="font-size:20px">Test in serie</div>
+      <p class="hint" id="serieHint"></p>
+      <button class="btn lg" id="serieStart" style="margin-top:8px">Avvia serie</button>
+      <p class="hint">Telefono a <b style="color:var(--teal)">~30&nbsp;cm</b>, stessa distanza ogni volta. Ogni test parte da solo quando senti la voce.</p>
+    </div>
+  </section>
+
+  <!-- CRONOMETRO -->
+  <section id="vCrono" class="view">
+    <button class="btn ghost" id="cronoBack" style="margin-bottom:14px">← Menu</button>
+    <div class="card crono">
+      <div class="croLbl">Cronometro</div>
+      <div class="croDisp" id="croDisp">00:00<span class="cs">.00</span></div>
+      <div class="row" style="margin-top:20px">
+        <button class="btn" id="croStartBtn">Avvia</button>
+        <button class="btn sec" id="croStopBtn">Ferma</button>
+        <button class="btn ghost" id="croResetBtn">Azzera</button>
+      </div>
+    </div>
   </section>
 
   <!-- RUNNER -->
@@ -267,8 +322,17 @@
       <input type="range" id="slNorm" min="-55" max="-20" step="1">
       <label style="margin-top:14px">Voce forte — <span id="lblLoud" style="color:var(--teal)"></span></label>
       <input type="range" id="slLoud" min="-50" max="-10" step="1">
-      <button class="btn sec" id="goCheck" style="margin-top:16px">Check distanza / livello</button>
-      <p class="hint">Valore più basso (verso −55) = più sensibile, parte con voce debole. La soglia "forte" è usata nei test Intensità massima e Forte e lungo.</p>
+      <p class="hint">La soglia "normale" non può superare la "forte": si spingono a vicenda. Più basso (verso −55) = più sensibile.</p>
+      <label style="margin-top:14px">Durata max “Intensità massima” — <span id="lblMax" style="color:var(--teal)"></span></label>
+      <input type="range" id="slMax" min="1" max="5" step="1">
+      <button class="btn" id="goCheck" style="margin-top:18px">📏 &nbsp;Check distanza / livello&nbsp; ›</button>
+    </div>
+
+    <div class="card">
+      <div class="ttitle" style="font-size:22px">Schema “Cambio di tono”</div>
+      <p class="hint" style="margin-top:0">Sequenza di fasi: il paziente deve <b>mantenere</b> la voce dentro un intervallo di frequenza per un tempo. Fino a 5 fasi (Hz e secondi).</p>
+      <div id="tonoMgr"></div>
+      <button class="btn sec" id="tonoAdd" style="margin-top:6px">＋ Aggiungi fase</button>
     </div>
 
     <div class="card">
@@ -400,8 +464,8 @@ const TESTS = [
     istruzione:'Pronuncia <b>“A”</b> a <b>tono normale</b> e tienila il più <b>a lungo</b> possibile, in un solo fiato.',
     durMax:30, minDur:1.5, metrics:["mpt","meanDb","trend","f0","f0sd","jitter","shimmer","hnr"] },
   { id:"glissando", n:4, titolo:"Cambio di tono",
-    istruzione:'Pronuncia <b>“A”</b> partendo <b>grave</b>, sali al tono più <b>ACUTO</b> che puoi, poi torna <b>giù</b>.',
-    durMax:15, minDur:1.2, metrics:["f0min","f0max","range","f0"] },
+    istruzione:'Porta la voce dentro ogni <b>fascia di frequenza</b> mostrata e <b>mantienila</b> per il tempo indicato, salendo di fascia in fascia.',
+    durMax:40, minDur:1.2, metrics:["stages"] },
 ];
 const METRIC_INFO = {
   peakDb:{k:"Livello picco", u:""}, meanDb:{k:"Livello medio", u:""},
@@ -426,8 +490,9 @@ const THEMES = {
 };
 const THEME_ORDER = ["notte","ambra","indaco","foresta","chiaro"];
 
-const DEF_SET = { display:"livello", theme:"notte", orient:"paziente", onsetNorm:-38, onsetLoud:-30, medicoEmail:"",
-  serie:{ order:["max","forte","normale","glissando"], active:{max:true,forte:true,normale:true,glissando:true}, reps:{max:1,forte:1,normale:1,glissando:1} } };
+const DEF_SET = { display:"livello", theme:"notte", orient:"paziente", onsetNorm:-38, onsetLoud:-30, medicoEmail:"", maxDur:3,
+  serie:{ order:["max","forte","normale","glissando"], active:{max:true,forte:true,normale:true,glissando:true}, reps:{max:1,forte:1,normale:1,glissando:1} },
+  tono:{ stages:[ {fmin:100,fmax:150,tmin:3,tmax:5}, {fmin:150,fmax:220,tmin:3,tmax:5}, {fmin:220,fmax:300,tmin:3,tmax:5} ] } };
 const SKEY="voce_settings";
 let SET = loadSet();
 function loadSet(){
@@ -436,17 +501,20 @@ function loadSet(){
     out.serie.active=Object.assign({},DEF_SET.serie.active,(s.serie||{}).active||{});
     out.serie.reps=Object.assign({},DEF_SET.serie.reps,(s.serie||{}).reps||{});
     if(!Array.isArray(out.serie.order)||out.serie.order.length!==4) out.serie.order=DEF_SET.serie.order.slice();
+    out.tono=Object.assign({},DEF_SET.tono,s.tono||{});
+    if(!Array.isArray(out.tono.stages)||!out.tono.stages.length) out.tono.stages=JSON.parse(JSON.stringify(DEF_SET.tono.stages));
+    if(typeof out.maxDur!=="number") out.maxDur=DEF_SET.maxDur;
     return out;
   }catch{ return JSON.parse(JSON.stringify(DEF_SET)); }
 }
 function saveSet(){ localStorage.setItem(SKEY, JSON.stringify(SET)); }
 
-let CTEAL="#36d6c3", CLIVE="#ff6b54", CLINE="#21323f", CTEALA="rgba(54,214,195,.18)";
+let CTEAL="#36d6c3", CLIVE="#ff6b54", CLINE="#21323f", CTEALA="rgba(54,214,195,.18)", CMUTED="#7f95a3";
 function applyTheme(id){
   const t=THEMES[id]||THEMES.notte; const r=document.documentElement.style;
   ["bg","bg2","panel","panel2","ink","muted","line","teal","teal-dim","live","good","warn","bad","onAccent"]
     .forEach(k=> r.setProperty("--"+k, t[k]));
-  CTEAL=t.teal; CLIVE=t.live; CLINE=t.line; CTEALA=hexA(t.teal,.18);
+  CTEAL=t.teal; CLIVE=t.live; CLINE=t.line; CTEALA=hexA(t.teal,.18); CMUTED=t.muted;
   const meta=document.querySelector('meta[name="theme-color"]'); if(meta) meta.content=t.bg;
 }
 function hexA(hex,a){ const n=hex.replace("#",""); const r=parseInt(n.substring(0,2),16),g=parseInt(n.substring(2,4),16),b=parseInt(n.substring(4,6),16); return `rgba(${r},${g},${b},${a})`; }
@@ -530,6 +598,11 @@ function showView(v){ document.querySelectorAll(".view").forEach(s=>s.classList.
 function startTest(test){
   curTest = test;
   CUR_ONSET = onsetFor(test); CUR_OFFSET = CUR_ONSET - 6;
+  if(test.id==="glissando"){
+    const tot=SET.tono.stages.reduce((s,st)=>s+(st.tmax||5),0);
+    CUR_DURMAX=Math.max(20, Math.round(tot*1.6)); CUR_SIL=1.3;
+  } else if(test.id==="max"){ CUR_DURMAX=SET.maxDur; CUR_SIL=0.45; }
+  else { CUR_DURMAX=test.durMax; CUR_SIL=0.45; }
   $("rStep").textContent = mode==="batt" ? `Test ${qIdx+1} di ${queue.length}` : "Test singolo";
   $("rTitle").textContent = test.titolo;
   $("rInstr").innerHTML = test.istruzione;
@@ -538,6 +611,7 @@ function startTest(test){
   $("liveDb").textContent="–"; $("liveHz").textContent="–"; $("liveT").textContent="0.0";
   $("liveDbK").textContent = intLabel();
   $("lvfill").style.width="0%";
+  const sc=$("scope"); const tall=test.id==="glissando"; sc.classList.toggle("tall",tall); sc.height=tall?340:160;
   document.querySelector("#vRun .stage").classList.toggle("flip", SET.orient==="medico");
   runState="idle"; frames=[]; peakHold=-99;
   clearScope();
@@ -565,8 +639,8 @@ $("rAbort").addEventListener("click", ()=>{ stopLoop(); backOut(); });
 function setStatus(cls,html){ const s=$("rStatus"); s.className="status "+(cls||""); s.innerHTML=html; }
 function stopLoop(){ runState="idle"; cancelAnimationFrame(raf); }
 
-const SIL_STOP = 0.45; // silence to stop (s)
-let CUR_ONSET = -38, CUR_OFFSET = -44; // set per test in startTest
+const SIL_STOP = 0.45; // default silence to stop (s)
+let CUR_ONSET = -38, CUR_OFFSET = -44, CUR_DURMAX = 30, CUR_SIL = 0.45; // set per test in startTest
 
 function loop(){
   raf = requestAnimationFrame(loop);
@@ -591,8 +665,8 @@ function loop(){
     if(db>peakHold) peakHold=db;
     if(db>CUR_OFFSET) lastVoiced = now;
     drawScope();
-    if(t >= curTest.durMax){ finalize(); return; }
-    if(now - lastVoiced > SIL_STOP && t > 0.3){ finalize(); return; }
+    if(t >= CUR_DURMAX){ finalize(); return; }
+    if(now - lastVoiced > CUR_SIL && t > 0.3){ finalize(); return; }
   }
 }
 
@@ -642,6 +716,22 @@ function compute(test, fr){
   // HNR from autocorrelation clarity
   const cl = voiced.map(f=>f.clarity).filter(x=>x>0);
   out.hnr = cl.length ? avg(cl.map(c=>10*Math.log10(c/(1-c)))) : 0;
+
+  // Cambio di tono: per ogni fascia, durata massima continua entro [fmin,fmax]
+  if(test.id==="glissando"){
+    const sm = medFilter(seg.map(f=>f.f0), 5); // f0 (con -1 dove non voiced)
+    out.stages = SET.tono.stages.map(st=>{
+      let best=0, run=0, prevT=null;
+      for(let i=0;i<seg.length;i++){
+        const f=sm[i], t=seg[i].t;
+        const inBand = f>0 && f>=st.fmin && f<=st.fmax;
+        if(inBand){ run += (prevT!=null)?(t-prevT):0; if(run>best) best=run; }
+        else run=0;
+        prevT=t;
+      }
+      return { fmin:st.fmin, fmax:st.fmax, tmin:st.tmin, tmax:st.tmax, hold:best, pass:best>=st.tmin };
+    });
+  }
 
   return out;
 }
@@ -700,16 +790,29 @@ function showResult(test, m, rep){
   $("resMeta").innerHTML = `Durata <b>${m._dur.toFixed(1)} s</b> · ${session.nome||""} ${session.cognome||""}`.trim();
   drawSpark($("resSpark"), m._frames);
   const g = $("resGrid"); g.innerHTML="";
-  test.metrics.forEach(key=>{
-    if(key==="trend"){
-      const t = trendTag(m.trendSlope);
+  if(test.id==="glissando"){
+    g.style.gridTemplateColumns="1fr";
+    (m.stages||[]).forEach((st,i)=>{
+      const col = st.pass?"good":"bad";
       g.insertAdjacentHTML("beforeend",
-        `<div class="metric"><div class="v" style="font-size:20px;color:var(--${t.cls==='g'?'good':t.cls==='w'?'warn':'bad'})">${t.txt}</div><div class="k">${METRIC_INFO.trend.k}</div></div>`);
-      return;
-    }
-    g.insertAdjacentHTML("beforeend",
-      `<div class="metric"><div class="v">${fmt(test,key,m)}<small>${metricUnit(key)}</small></div><div class="k">${metricLabel(key,test)}</div></div>`);
-  });
+        `<div class="stagebar"><span class="sl">Fase ${i+1} · ${st.fmin}–${st.fmax} Hz</span>
+         <span class="sr" style="color:var(--${col})">${st.hold.toFixed(1)}s / ${st.tmin}s ${st.pass?"✓":"✗"}</span></div>`);
+    });
+    const ok=(m.stages||[]).filter(s=>s.pass).length;
+    g.insertAdjacentHTML("beforeend",`<div class="metric"><div class="v">${ok}<small>/ ${(m.stages||[]).length}</small></div><div class="k">Fasi mantenute</div></div>`);
+  } else {
+    g.style.gridTemplateColumns="1fr 1fr";
+    test.metrics.forEach(key=>{
+      if(key==="trend"){
+        const t = trendTag(m.trendSlope);
+        g.insertAdjacentHTML("beforeend",
+          `<div class="metric"><div class="v" style="font-size:20px;color:var(--${t.cls==='g'?'good':t.cls==='w'?'warn':'bad'})">${t.txt}</div><div class="k">${METRIC_INFO.trend.k}</div></div>`);
+        return;
+      }
+      g.insertAdjacentHTML("beforeend",
+        `<div class="metric"><div class="v">${fmt(test,key,m)}<small>${metricUnit(key)}</small></div><div class="k">${metricLabel(key,test)}</div></div>`);
+    });
+  }
   // last button label
   const last = (mode==="single") || (qIdx>=queue.length-1);
   $("resNext").textContent = last ? "Concludi" : "Avanti";
@@ -733,7 +836,7 @@ $("resNext").addEventListener("click", ()=>{
 function keyEsito(id,m){
   if(id==="max") return SET.display==="db" ? `picco ${Math.round(m.peakDb)} dB` : `livello picco ${livello(m.peakDb)}/100`;
   if(id==="forte"||id==="normale"){ const t=trendTag(m.trendSlope); return `MPT ${m.mpt.toFixed(1)} s · ${t.txt}`; }
-  if(id==="glissando") return `${m.range.toFixed(1)} semit. (${m.f0min.toFixed(0)}–${m.f0max.toFixed(0)} Hz)`;
+  if(id==="glissando"){ const st=m.stages||[]; const ok=st.filter(s=>s.pass).length; return `${ok}/${st.length} fasi mantenute`; }
   return "–";
 }
 function buildSummary(){
@@ -771,7 +874,7 @@ $("sumSave").addEventListener("click", ()=>{
   toast("Sessione salvata");
 });
 $("sumHist").addEventListener("click", renderHist);
-$("sumHome").addEventListener("click", ()=> showView("vHome"));
+$("sumHome").addEventListener("click", ()=> showView("vMenu"));
 $("sumCopy").addEventListener("click", ()=>{
   navigator.clipboard.writeText(textReport(session)).then(()=>toast("Riepilogo copiato")).catch(()=>toast("Copia non riuscita"));
 });
@@ -812,11 +915,9 @@ function downloadCsv(sessions,name){
 }
 
 /* ============================ HISTORY ============================ */
-$("goHist").addEventListener("click", renderHist);
-$("goInfo").addEventListener("click", openSettings);
-$("infoBack").addEventListener("click", ()=> showView("vHome"));
-$("infoBackTop").addEventListener("click", ()=> showView("vHome"));
-$("histBack").addEventListener("click", ()=> showView("vHome"));
+$("infoBack").addEventListener("click", ()=> showView("vMenu"));
+$("infoBackTop").addEventListener("click", ()=> showView("vMenu"));
+$("histBack").addEventListener("click", ()=> showView("vMenu"));
 $("histCsv").addEventListener("click", ()=>{ const a=loadAll(); if(!a.length) return toast("Storico vuoto"); downloadCsv(a,"voce_storico.csv"); });
 
 function historyReport(all){
@@ -882,12 +983,13 @@ function drawScope(){
   if(!sctx) return;
   const w=scope.width,h=scope.height;
   sctx.clearRect(0,0,w,h);
+  if(curTest && curTest.id==="glissando"){ drawScopeTono(w,h); return; }
   // baseline grid
   sctx.strokeStyle=CLINE; sctx.lineWidth=1;
   sctx.beginPath(); sctx.moveTo(0,h-1); sctx.lineTo(w,h-1); sctx.stroke();
   // intensity area
   sctx.beginPath(); sctx.moveTo(0,h);
-  scopeHist.forEach((p,i)=>{ const x=i*(w/scope.width)*1; sctx.lineTo(i,h-p.level*(h-12)); });
+  scopeHist.forEach((p,i)=>{ sctx.lineTo(i,h-p.level*(h-12)); });
   sctx.lineTo(scopeHist.length,h); sctx.closePath();
   sctx.fillStyle=CTEALA; sctx.fill();
   sctx.beginPath();
@@ -897,6 +999,31 @@ function drawScope(){
   sctx.beginPath(); let started=false;
   scopeHist.forEach((p,i)=>{ if(p.f0>0){ const y=h-((p.f0-60)/340)*(h-12); if(!started){sctx.moveTo(i,y);started=true;} else sctx.lineTo(i,y); } else started=false; });
   sctx.strokeStyle=CLIVE; sctx.lineWidth=2; sctx.stroke();
+}
+function drawScopeTono(w,h){
+  const stages=SET.tono.stages;
+  const FMIN=60, FMAX=Math.max(400, Math.max(...stages.map(s=>s.fmax))*1.15);
+  const yOf=f=> (h-14) - (f-FMIN)/(FMAX-FMIN)*(h-26);
+  // gridlines + Hz labels
+  const step = FMAX>520?100:50;
+  sctx.font="10px "+"monospace"; sctx.textBaseline="alphabetic";
+  for(let f=Math.ceil(FMIN/step)*step; f<=FMAX; f+=step){
+    const yy=yOf(f); sctx.strokeStyle=CLINE; sctx.globalAlpha=.45;
+    sctx.beginPath(); sctx.moveTo(0,yy); sctx.lineTo(w,yy); sctx.stroke(); sctx.globalAlpha=1;
+    sctx.fillStyle=CMUTED; sctx.fillText(f+" Hz", w-42, yy-2);
+  }
+  // target bands
+  stages.forEach((st,i)=>{
+    const yTop=yOf(st.fmax), yBot=yOf(st.fmin);
+    sctx.fillStyle=CTEALA; sctx.fillRect(0,yTop,w,yBot-yTop);
+    sctx.strokeStyle=CTEAL; sctx.globalAlpha=.5; sctx.strokeRect(0.5,yTop,w-1,yBot-yTop); sctx.globalAlpha=1;
+    sctx.fillStyle=CTEAL; sctx.font="11px monospace";
+    sctx.fillText(`F${i+1} · ${st.fmin}-${st.fmax}Hz · ${st.tmin}s`, 6, yTop+13);
+  });
+  // live f0 line
+  sctx.beginPath(); let started=false;
+  scopeHist.forEach((p,i)=>{ if(p.f0>0){ const yy=yOf(Math.min(p.f0,FMAX)); if(!started){sctx.moveTo(i,yy);started=true;} else sctx.lineTo(i,yy);} else started=false; });
+  sctx.strokeStyle=CLIVE; sctx.lineWidth=2.5; sctx.stroke();
 }
 function drawSpark(cv, fr){
   const ctx=cv.getContext("2d"), w=cv.width,h=cv.height; ctx.clearRect(0,0,w,h);
@@ -912,57 +1039,89 @@ function drawSpark(cv, fr){
   ctx.strokeStyle=CLIVE; ctx.lineWidth=1.8; ctx.stroke();
 }
 
-/* ============================ HOME WIRING ============================ */
-document.querySelectorAll("#segMode button").forEach(b=>b.addEventListener("click",()=>{
-  document.querySelectorAll("#segMode button").forEach(x=>x.classList.remove("on"));
-  b.classList.add("on"); mode=b.dataset.mode;
-  const single = mode==="single";
-  $("singleList").style.display = single?"grid":"none";
-  $("modeHint").textContent = single ? "Scegli un singolo test da eseguire." : "4 test in sequenza con istruzioni e riepilogo finale.";
-  $("goStart").style.display = single?"none":"";
-}));
-// build single list
+/* ============================ MENU / FLUSSI ============================ */
+function readPatient(sfx){
+  const nome=$("nome"+sfx).value.trim(), cognome=$("cognome"+sfx).value.trim();
+  if(!nome && !cognome){ toast("Inserisci almeno il nome del paziente"); return null; }
+  return { nome, cognome, id:$("id"+sfx).value.trim(), stanza:$("room"+sfx).value||"" };
+}
+function newSession(p){ session={ nome:p.nome, cognome:p.cognome, id:p.id, stanza:p.stanza, datetime:Date.now(), runs:[] }; }
+
+// build single test list
 const sl=$("singleList");
 TESTS.forEach(t=>{
   const el=document.createElement("button"); el.className="titem";
   el.innerHTML=`<span class="n">${t.n}</span><span><span class="tt">${t.titolo}</span><span class="td">${t.istruzione.replace(/<[^>]+>/g,"")}</span></span>`;
-  el.addEventListener("click",()=>{ if(!beginSession()) return; mode="single"; queue=[t.id]; qIdx=0; startTest(t); });
+  el.addEventListener("click",()=>{ const p=readPatient("S"); if(!p) return; newSession(p); mode="single"; queue=[t.id]; qIdx=0; startTest(t); });
   sl.appendChild(el);
 });
-function beginSession(){
-  const nome=$("pNome").value.trim(), cognome=$("pCognome").value.trim();
-  if(!nome && !cognome){ toast("Inserisci almeno il nome del paziente"); return false; }
-  session={ nome, cognome, id:$("pId").value.trim(), stanza:$("roomSel").value||"", datetime:Date.now(), runs:[] };
-  return true;
-}
+
 function buildQueue(){
   const sc=SET.serie, q=[];
   sc.order.forEach(id=>{ if(sc.active[id]){ const reps=Math.max(1,sc.reps[id]||1); for(let k=0;k<reps;k++) q.push(id); } });
   return q.length ? q : TESTS.map(t=>t.id);
 }
-$("goStart").addEventListener("click",()=>{
-  if(!beginSession()) return;
-  mode="batt"; queue=buildQueue(); qIdx=0;
-  startTest(TESTS.find(t=>t.id===queue[0]));
+function updateSerieHint(){
+  const names=SET.serie.order.filter(id=>SET.serie.active[id]).map(id=>{ const t=TESTS.find(x=>x.id===id); const r=SET.serie.reps[id]; return t.titolo+(r>1?` ×${r}`:""); });
+  $("serieHint").textContent = names.length ? "Sequenza: "+names.join(" · ") : "Nessun test attivo — configuralo in Impostazioni.";
+}
+$("serieStart").addEventListener("click",()=>{
+  const p=readPatient("R"); if(!p) return;
+  const q=buildQueue(); if(!q.length) return toast("Nessun test attivo");
+  newSession(p); mode="batt"; queue=q; qIdx=0; startTest(TESTS.find(t=>t.id===queue[0]));
 });
-function backOut(){ showView("vHome"); }
-$("homeLogo").addEventListener("click", ()=> showView("vHome"));
+function backOut(){ showView(mode==="single"?"vSingle":"vSerie"); }
+
+// menu navigation
+$("mSingle").addEventListener("click", ()=>{ renderRooms(); showView("vSingle"); });
+$("mSerie").addEventListener("click", ()=>{ renderRooms(); updateSerieHint(); showView("vSerie"); });
+$("mCrono").addEventListener("click", ()=> showView("vCrono"));
+$("mHist").addEventListener("click", renderHist);
+$("mInfo").addEventListener("click", openSettings);
+$("singleBack").addEventListener("click", ()=> showView("vMenu"));
+$("serieBack").addEventListener("click", ()=> showView("vMenu"));
+$("cronoBack").addEventListener("click", ()=>{ croStop(); showView("vMenu"); });
+$("homeLogo").addEventListener("click", ()=> showView("vMenu"));
+
+/* ============================ CRONOMETRO ============================ */
+let croRaf=0, croT0=0, croAcc=0, croRun=false;
+function croFmt(ms){
+  const cs=Math.floor(ms/10)%100, s=Math.floor(ms/1000)%60, m=Math.floor(ms/60000);
+  const p=(n,l=2)=>String(n).padStart(l,"0");
+  return `${p(m)}:${p(s)}<span class="cs">.${p(cs)}</span>`;
+}
+function croRender(){
+  const ms=croAcc + (croRun ? performance.now()-croT0 : 0);
+  $("croDisp").innerHTML=croFmt(ms);
+  if(croRun) croRaf=requestAnimationFrame(croRender);
+}
+function croStart(){ if(croRun) return; croRun=true; croT0=performance.now(); croRender(); }
+function croStop(){ if(!croRun) return; croAcc+=performance.now()-croT0; croRun=false; cancelAnimationFrame(croRaf); croRender(); }
+function croReset(){ croRun=false; cancelAnimationFrame(croRaf); croAcc=0; $("croDisp").innerHTML=croFmt(0); }
+$("croStartBtn").addEventListener("click", croStart);
+$("croStopBtn").addEventListener("click", croStop);
+$("croResetBtn").addEventListener("click", croReset);
 
 /* ============================ STANZE ============================ */
 const RKEY="voce_rooms", RSEL="voce_room_sel";
 function loadRooms(){ try{ const r=JSON.parse(localStorage.getItem(RKEY)); return Array.isArray(r)&&r.length?r:["Studio 1"]; }catch{ return ["Studio 1"]; } }
 function saveRooms(r){ localStorage.setItem(RKEY, JSON.stringify(r)); }
 function renderRooms(sel){
-  const rooms=loadRooms(), s=$("roomSel"); s.innerHTML="";
-  rooms.forEach(name=>{ const o=document.createElement("option"); o.value=name; o.textContent=name; s.appendChild(o); });
+  const rooms=loadRooms();
   const chosen = sel || localStorage.getItem(RSEL) || rooms[0];
-  s.value = rooms.includes(chosen)?chosen:rooms[0];
+  document.querySelectorAll(".roomsel").forEach(s=>{
+    s.innerHTML="";
+    rooms.forEach(name=>{ const o=document.createElement("option"); o.value=name; o.textContent=name; s.appendChild(o); });
+    s.value = rooms.includes(chosen)?chosen:rooms[0];
+  });
 }
-$("roomSel").addEventListener("change", ()=> localStorage.setItem(RSEL, $("roomSel").value));
+document.querySelectorAll(".roomsel").forEach(s=> s.addEventListener("change", ()=>{
+  localStorage.setItem(RSEL, s.value); renderRooms(s.value);
+}));
 renderRooms();
 
 /* ============================ IMPOSTAZIONI ============================ */
-function refreshRooms(){ renderRooms($("roomSel").value); renderRoomMgr(); }
+function refreshRooms(){ renderRooms(localStorage.getItem(RSEL)||undefined); renderRoomMgr(); }
 function renderRoomMgr(){
   const rooms=loadRooms(), box=$("roomMgr"); box.innerHTML="";
   rooms.forEach(name=>{
@@ -1006,13 +1165,49 @@ function renderThemes(){
     row.appendChild(b);
   });
 }
-// Sliders soglie
+// Sliders soglie (normale non può superare forte: si spingono a vicenda)
 function setSliders(){
   $("slNorm").value=SET.onsetNorm; $("slLoud").value=SET.onsetLoud;
   $("lblNorm").textContent=SET.onsetNorm+" dBFS"; $("lblLoud").textContent=SET.onsetLoud+" dBFS";
+  $("slMax").value=SET.maxDur; $("lblMax").textContent=SET.maxDur+" s";
 }
-$("slNorm").addEventListener("input", e=>{ SET.onsetNorm=+e.target.value; $("lblNorm").textContent=SET.onsetNorm+" dBFS"; saveSet(); });
-$("slLoud").addEventListener("input", e=>{ SET.onsetLoud=+e.target.value; $("lblLoud").textContent=SET.onsetLoud+" dBFS"; saveSet(); });
+$("slNorm").addEventListener("input", e=>{
+  SET.onsetNorm=+e.target.value;
+  if(SET.onsetNorm>SET.onsetLoud){ SET.onsetLoud=SET.onsetNorm; $("slLoud").value=SET.onsetLoud; $("lblLoud").textContent=SET.onsetLoud+" dBFS"; }
+  $("lblNorm").textContent=SET.onsetNorm+" dBFS"; saveSet();
+});
+$("slLoud").addEventListener("input", e=>{
+  SET.onsetLoud=+e.target.value;
+  if(SET.onsetLoud<SET.onsetNorm){ SET.onsetNorm=SET.onsetLoud; $("slNorm").value=SET.onsetNorm; $("lblNorm").textContent=SET.onsetNorm+" dBFS"; }
+  $("lblLoud").textContent=SET.onsetLoud+" dBFS"; saveSet();
+});
+$("slMax").addEventListener("input", e=>{ SET.maxDur=+e.target.value; $("lblMax").textContent=SET.maxDur+" s"; saveSet(); });
+
+// Schema "Cambio di tono"
+function renderTono(){
+  const box=$("tonoMgr"); box.innerHTML="";
+  SET.tono.stages.forEach((st,i)=>{
+    const row=document.createElement("div"); row.className="tstage";
+    row.innerHTML=`<span class="si">${i+1}</span>
+      <div class="tcol"><span class="tlab">Hz min</span><input class="tin" type="number" inputmode="numeric" data-k="fmin" value="${st.fmin}"></div>
+      <div class="tcol"><span class="tlab">Hz max</span><input class="tin" type="number" inputmode="numeric" data-k="fmax" value="${st.fmax}"></div>
+      <div class="tcol"><span class="tlab">sec min</span><input class="tin" type="number" inputmode="numeric" data-k="tmin" value="${st.tmin}"></div>
+      <div class="tcol"><span class="tlab">sec max</span><input class="tin" type="number" inputmode="numeric" data-k="tmax" value="${st.tmax}"></div>`;
+    const x=document.createElement("button"); x.className="xbtn"; x.textContent="×";
+    x.addEventListener("click",()=>{ if(SET.tono.stages.length<=1) return toast("Serve almeno una fase"); SET.tono.stages.splice(i,1); saveSet(); renderTono(); });
+    row.appendChild(x);
+    row.querySelectorAll(".tin").forEach(inp=> inp.addEventListener("change",()=>{
+      const v=Math.max(0,Math.round(+inp.value||0)); st[inp.dataset.k]=v; saveSet();
+    }));
+    box.appendChild(row);
+  });
+}
+$("tonoAdd").addEventListener("click",()=>{
+  if(SET.tono.stages.length>=5) return toast("Massimo 5 fasi");
+  const last=SET.tono.stages[SET.tono.stages.length-1]||{fmax:150,tmin:3,tmax:5};
+  SET.tono.stages.push({ fmin:last.fmax, fmax:Math.round(last.fmax*1.4), tmin:last.tmin, tmax:last.tmax });
+  saveSet(); renderTono();
+});
 
 // Schema test in serie
 function renderSerie(){
@@ -1054,7 +1249,7 @@ function openSettings(){
   document.querySelectorAll("#segDisplay button").forEach(x=>x.classList.toggle("on",x.dataset.d===SET.display));
   document.querySelectorAll("#segOrient button").forEach(x=>x.classList.toggle("on",x.dataset.o===SET.orient));
   $("medEmail").value = SET.medicoEmail||"";
-  renderThemes(); setSliders(); renderRoomMgr(); renderSerie();
+  renderThemes(); setSliders(); renderRoomMgr(); renderSerie(); renderTono();
   showView("vInfo");
 }
 
