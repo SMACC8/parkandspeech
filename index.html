@@ -1157,13 +1157,13 @@ $("mQR").addEventListener("click", ()=>{
 $("qrBack").addEventListener("click", ()=> showView("vMenu"));
 
 /* ============================ DETTATO (speech-to-text) ============================ */
-let rec=null, recRunning=false, sttCommitted="", sttSession="";
+let rec=null, recRunning=false, sttText="", sttLastFinal="";
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 $("mSTT").addEventListener("click", ()=>{ sttUI(false); showView("vSTT"); });
 $("sttBack").addEventListener("click", ()=>{ sttStop(); showView("vMenu"); });
-$("sttClear").addEventListener("click", ()=>{ sttCommitted=""; sttSession=""; $("sttText").innerHTML=""; });
+$("sttClear").addEventListener("click", ()=>{ sttText=""; sttLastFinal=""; $("sttText").innerHTML=""; });
 $("sttCopy").addEventListener("click", ()=>{
-  const t=[sttCommitted,sttSession].filter(Boolean).join(" ").trim(); if(!t) return toast("Niente da copiare");
+  const t=sttText.trim(); if(!t) return toast("Niente da copiare");
   navigator.clipboard.writeText(t).then(()=>toast("Testo copiato")).catch(()=>toast("Copia non riuscita"));
 });
 function sttUI(on){
@@ -1172,10 +1172,25 @@ function sttUI(on){
   $("sttStatus").className="status "+(on?"rec":"");
   $("sttStatus").innerHTML = on ? '<span class="dot"></span>In ascolto…' : "";
 }
-function sttRender(interim){
-  const base=[sttCommitted,sttSession].filter(Boolean).join(" ");
+function sttRender(session, interim){
+  const base=[sttText, session].filter(s=>s&&s.trim()).join(" ");
   $("sttText").innerHTML = base + (interim?'<span style="color:var(--muted)"> '+interim+'</span>':"");
   $("sttText").scrollTop=$("sttText").scrollHeight;
+}
+// aggiunge il pezzo togliendo la sovrapposizione con la coda già scritta (anti-ripetizione Android)
+function sttCommit(chunk){
+  chunk=(chunk||"").trim(); if(!chunk) return;
+  if(chunk===sttLastFinal) { return; }
+  const prev=sttText.trim().split(/\s+/).filter(Boolean);
+  const next=chunk.split(/\s+/);
+  let ov=Math.min(prev.length, next.length, 10);
+  while(ov>0){
+    if(prev.slice(-ov).join(" ").toLowerCase()===next.slice(0,ov).join(" ").toLowerCase()){ next.splice(0,ov); break; }
+    ov--;
+  }
+  const add=next.join(" ").trim();
+  if(add) sttText=(sttText?sttText+" ":"")+add;
+  sttLastFinal=chunk;
 }
 $("sttStart").addEventListener("click", ()=>{
   if(!SR){ toast("Trascrizione non supportata su questo browser"); return; }
@@ -1183,23 +1198,22 @@ $("sttStart").addEventListener("click", ()=>{
 });
 function startRec(){
   rec=new SR(); rec.lang="it-IT"; rec.continuous=true; rec.interimResults=true;
-  sttSession="";
-  // ricostruisce l'intera sessione ad ogni evento (niente doppioni su Android)
+  let sessionFinal="";
   rec.onresult=(e)=>{
     let fin="", interim="";
     for(let i=0;i<e.results.length;i++){
       const r=e.results[i], t=r[0].transcript;
       if(r.isFinal) fin += t + " "; else interim += t;
     }
-    sttSession = fin.trim();
-    sttRender(interim.trim());
+    sessionFinal=fin;
+    sttRender(sessionFinal.trim(), interim.trim());
   };
   rec.onerror=(e)=>{ if(e.error==="no-speech"||e.error==="aborted") return; toast("Errore trascrizione: "+e.error); };
   rec.onend=()=>{
-    if(sttSession){ sttCommitted = (sttCommitted?sttCommitted+" ":"") + sttSession; sttSession=""; }
-    if(recRunning){ try{ rec.start(); }catch(e){} } else sttRender("");
+    sttCommit(sessionFinal); sessionFinal="";
+    if(recRunning) setTimeout(()=>{ if(recRunning) startRec(); }, 350); else sttRender("","");
   };
-  try{ rec.start(); }catch(e){ recRunning=false; sttUI(false); toast("Impossibile avviare la trascrizione"); }
+  try{ rec.start(); }catch(e){ if(recRunning) setTimeout(()=>{ if(recRunning) startRec(); }, 350); }
 }
 $("sttStop").addEventListener("click", sttStop);
 function sttStop(){ recRunning=false; if(rec){ try{ rec.stop(); }catch(e){} } sttUI(false); }
