@@ -475,6 +475,13 @@
         <button class="btn sec" id="sttCopy">Copia</button>
       </div>
       <p class="hint">Scrive in tempo reale ciò che viene detto. Richiede <b>connessione a internet</b> e funziona al meglio su <b>Android/Chrome</b> (su iPhone è inaffidabile).</p>
+      <details style="margin-top:10px">
+        <summary style="cursor:pointer;color:var(--teal);font-weight:600;font-size:15px">Il microfono non è autorizzato?</summary>
+        <p class="hint" style="margin-top:8px">Il permesso va dato <b>al browser per questo sito</b>, non all'app Google.<br><br>
+        <b>Android/Chrome:</b> apri l'app, tocca i <b>tre puntini ⋮ → Informazioni sito</b> (o l'icona a sinistra dell'indirizzo) → <b>Autorizzazioni → Microfono → Consenti</b>.<br><br>
+        <b>Se l'app è installata in Home:</b> Impostazioni Android → <b>App</b> → cerca l'app → <b>Autorizzazioni → Microfono → Consenti</b>.<br><br>
+        <b>In alternativa:</b> Chrome → ⋮ → Impostazioni → <b>Impostazioni sito → Microfono</b> → trova l'indirizzo dell'app → Consenti.</p>
+      </details>
     </div>
   </section>
 </div>
@@ -590,6 +597,12 @@ async function initMic(){
     toast("Microfono non disponibile — controlla i permessi");
     return false;
   }
+}
+// rilascia il microfono: indispensabile prima del riconoscimento vocale (Android non condivide il mic)
+function releaseMic(){
+  try{ if(stream){ stream.getTracks().forEach(t=>t.stop()); } }catch(e){}
+  try{ if(ac && ac.state!=="closed"){ ac.close(); } }catch(e){}
+  stream=null; ac=null; analyser=null; micReady=false;
 }
 
 // Autocorrelation pitch + clarity, lag-limited to voice range
@@ -1157,11 +1170,15 @@ $("mQR").addEventListener("click", ()=>{
 $("qrBack").addEventListener("click", ()=> showView("vMenu"));
 
 /* ============================ DETTATO (speech-to-text) ============================ */
-let rec=null, recRunning=false, sttText="", sttLastFinal="";
+let rec=null, recRunning=false, sttText="", sttLastChunk="", sttRestart=0;
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-$("mSTT").addEventListener("click", ()=>{ sttUI(false); showView("vSTT"); });
+const IS_ANDROID = /Android/i.test(navigator.userAgent);
+$("mSTT").addEventListener("click", ()=>{
+  releaseMic();            // libera il microfono: il riconoscimento vocale non lo condivide
+  sttUI(false); showView("vSTT");
+});
 $("sttBack").addEventListener("click", ()=>{ sttStop(); showView("vMenu"); });
-$("sttClear").addEventListener("click", ()=>{ sttText=""; sttLastFinal=""; $("sttText").innerHTML=""; });
+$("sttClear").addEventListener("click", ()=>{ sttText=""; sttLastChunk=""; $("sttText").innerHTML=""; });
 $("sttCopy").addEventListener("click", ()=>{
   const t=sttText.trim(); if(!t) return toast("Niente da copiare");
   navigator.clipboard.writeText(t).then(()=>toast("Testo copiato")).catch(()=>toast("Copia non riuscita"));
@@ -1177,43 +1194,60 @@ function sttRender(session, interim){
   $("sttText").innerHTML = base + (interim?'<span style="color:var(--muted)"> '+interim+'</span>':"");
   $("sttText").scrollTop=$("sttText").scrollHeight;
 }
-// aggiunge il pezzo togliendo la sovrapposizione con la coda già scritta (anti-ripetizione Android)
+// aggiunge il pezzo eliminando la sovrapposizione con la coda già scritta
 function sttCommit(chunk){
   chunk=(chunk||"").trim(); if(!chunk) return;
-  if(chunk===sttLastFinal) { return; }
+  const norm=s=>s.toLowerCase().replace(/[.,;:!?]/g,"").trim();
+  if(norm(chunk)===norm(sttLastChunk)) return;            // stessa frase ri-emessa dal riavvio
   const prev=sttText.trim().split(/\s+/).filter(Boolean);
   const next=chunk.split(/\s+/);
-  let ov=Math.min(prev.length, next.length, 10);
+  let ov=Math.min(prev.length, next.length, 15);
   while(ov>0){
-    if(prev.slice(-ov).join(" ").toLowerCase()===next.slice(0,ov).join(" ").toLowerCase()){ next.splice(0,ov); break; }
+    if(norm(prev.slice(-ov).join(" "))===norm(next.slice(0,ov).join(" "))){ next.splice(0,ov); break; }
     ov--;
   }
   const add=next.join(" ").trim();
   if(add) sttText=(sttText?sttText+" ":"")+add;
-  sttLastFinal=chunk;
+  sttLastChunk=chunk;
 }
-$("sttStart").addEventListener("click", ()=>{
+$("sttStart").addEventListener("click", async ()=>{
   if(!SR){ toast("Trascrizione non supportata su questo browser"); return; }
-  recRunning=true; startRec(); sttUI(true);
+  releaseMic();                                   // sicurezza: mic libero
+  await new Promise(r=>setTimeout(r,250));         // lascia chiudere lo stream
+  recRunning=true; sttRestart=0; startRec(); sttUI(true);
 });
 function startRec(){
-  rec=new SR(); rec.lang="it-IT"; rec.continuous=true; rec.interimResults=true;
-  let sessionFinal="";
+  rec=new SR(); rec.lang="it-IT"; rec.interimResults=true; rec.maxAlternatives=1;
+  // su Android "continuous" è mal supportato e ri-emette i risultati: meglio a raffica corta + riavvio
+  rec.continuous = !IS_ANDROID;
+  let finals=[];                                   // indicizzati: una ri-emissione sovrascrive, non duplica
   rec.onresult=(e)=>{
-    let fin="", interim="";
+    let interim="";
     for(let i=0;i<e.results.length;i++){
       const r=e.results[i], t=r[0].transcript;
-      if(r.isFinal) fin += t + " "; else interim += t;
+      if(r.isFinal) finals[i]=t.trim(); else interim+=t;
     }
-    sessionFinal=fin;
-    sttRender(sessionFinal.trim(), interim.trim());
+    sttRender(finals.filter(Boolean).join(" "), interim.trim());
   };
-  rec.onerror=(e)=>{ if(e.error==="no-speech"||e.error==="aborted") return; toast("Errore trascrizione: "+e.error); };
+  rec.onerror=(e)=>{
+    if(e.error==="no-speech"||e.error==="aborted") return;
+    if(e.error==="not-allowed"||e.error==="service-not-allowed"){
+      recRunning=false; sttUI(false);
+      $("sttStatus").className="status armed";
+      $("sttStatus").textContent="Microfono non autorizzato per questo sito — vedi le istruzioni qui sotto";
+      return;
+    }
+    if(e.error==="network"){ toast("Serve una connessione a internet"); return; }
+    toast("Errore trascrizione: "+e.error);
+  };
   rec.onend=()=>{
-    sttCommit(sessionFinal); sessionFinal="";
-    if(recRunning) setTimeout(()=>{ if(recRunning) startRec(); }, 350); else sttRender("","");
+    sttCommit(finals.filter(Boolean).join(" ")); finals=[];
+    if(recRunning){
+      if(++sttRestart>400){ recRunning=false; sttUI(false); return; }   // salvagente anti-loop
+      setTimeout(()=>{ if(recRunning) startRec(); }, 400);
+    } else sttRender("","");
   };
-  try{ rec.start(); }catch(e){ if(recRunning) setTimeout(()=>{ if(recRunning) startRec(); }, 350); }
+  try{ rec.start(); }catch(e){ if(recRunning) setTimeout(()=>{ if(recRunning) startRec(); }, 500); }
 }
 $("sttStop").addEventListener("click", sttStop);
 function sttStop(){ recRunning=false; if(rec){ try{ rec.stop(); }catch(e){} } sttUI(false); }
