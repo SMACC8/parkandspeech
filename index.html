@@ -56,6 +56,8 @@
   .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;margin-bottom:4px;flex-wrap:wrap}
   .seg button{flex:1;background:transparent;color:var(--muted);padding:12px;border-radius:9px;font-size:16px;font-weight:600;min-width:90px}
   .seg button.on{background:var(--teal);color:var(--onAccent)}
+  .seg button.dim{opacity:.42}
+  .calbox{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:15px;line-height:1.5}
   .themes{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
   .sw{width:50px;height:50px;border-radius:13px;border:2px solid var(--line);cursor:pointer;overflow:hidden;position:relative;padding:0}
   .sw.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink) inset}
@@ -309,7 +311,9 @@
       <div class="seg" id="segDisplay">
         <button data-d="livello" class="on">Intensità 0–100</button>
         <button data-d="db">dB</button>
+        <button data-d="spl" id="segSpl">dB SPL</button>
       </div>
+      <p class="hint" id="splHint" style="margin-top:6px"></p>
       <label style="margin-top:16px">Tema</label>
       <div class="themes" id="themeRow"></div>
       <label style="margin-top:16px">Orientamento comandi</label>
@@ -328,6 +332,15 @@
       <p class="hint">La soglia "normale" non può superare la "forte": si spingono a vicenda. Più basso (verso −55) = più sensibile.</p>
       <p class="hint" style="margin-top:12px">“Intensità massima” e “Cambio di tono” usano la <b>registrazione continua</b>: non si fermano alle pause e proseguono <b>finché premi “Ferma ora”</b> (utile per contare a voce alta o liste di parole).</p>
       <button class="btn" id="goCheck" style="margin-top:18px">📏 &nbsp;Check distanza / livello&nbsp; ›</button>
+    </div>
+
+    <div class="card">
+      <div class="ttitle" style="font-size:22px">Calibrazione dB SPL</div>
+      <p class="hint" style="margin-top:0">L'app misura <b>dBFS</b> (livello digitale, sempre negativo): dipende dal telefono e non è confrontabile con i 65/75&nbsp;dB della letteratura. Con una <b>calibrazione a un punto</b> — un fonometro di riferimento accanto al telefono — l'app può mostrare i valori in <b>dB SPL stimati</b>.</p>
+      <div id="calState" style="margin:12px 0"></div>
+      <button class="btn" id="goCal">🔊 &nbsp;Calibra ora&nbsp; ›</button>
+      <button class="btn sec" id="calDel" style="margin-top:10px;color:var(--bad);border-color:#3a2530">Rimuovi calibrazione</button>
+      <p class="hint" style="margin-top:12px">Vale per <b>questo telefono, questo supporto e questa distanza</b>: se cambia qualcosa, va rifatta. È una stima, non una taratura metrologica — nel CSV restano anche i dBFS reali.</p>
     </div>
 
     <div class="card">
@@ -419,7 +432,7 @@
 
     <div class="card">
       <div class="ttitle" style="font-size:22px">Metodo e limiti</div>
-      <p class="hint" style="font-size:14.5px">Cattura con guadagno automatico, cancellazione eco e riduzione rumore <b>disattivati</b> (necessario per non falsare l'intensità). Intensità in <b>dBFS relativi</b>, non SPL assoluti. Tono rilevato per autocorrelazione (60–500 Hz). Jitter/shimmer/HNR sono <b>stime per frame</b> (~16 ms), non ciclo-per-ciclo come Praat: ottimi come trend longitudinale, non come valori clinici assoluti.</p>
+      <p class="hint" style="font-size:14.5px">Cattura con guadagno automatico, cancellazione eco e riduzione rumore <b>disattivati</b> (necessario per non falsare l'intensità). Intensità in <b>dBFS relativi</b>: diventano <b>dB SPL stimati</b> solo dopo la calibrazione a un punto (Impostazioni → Calibrazione dB SPL), che resta comunque una stima legata a telefono e distanza. Tono rilevato per autocorrelazione (60–500 Hz). Jitter/shimmer/HNR sono <b>stime per frame</b> (~16 ms), non ciclo-per-ciclo come Praat: ottimi come trend longitudinale, non come valori clinici assoluti.</p>
     </div>
 
     <div class="card">
@@ -447,6 +460,33 @@
       </div>
       <div class="status" id="ckVerdict" style="font-size:19px;margin-top:18px">—</div>
       <button class="btn ghost" id="ckBack" style="margin-top:8px">Chiudi</button>
+    </div>
+  </section>
+
+  <!-- CALIBRAZIONE SPL -->
+  <section id="vCal" class="view">
+    <div class="card stage">
+      <div class="ttitle" style="font-size:22px">Calibrazione dB SPL</div>
+      <p class="hint" style="text-align:left">
+        <b>1.</b> Metti un <b>fonometro di riferimento</b> (strumento o app già affidabile) accanto al microfono del telefono, alla stessa distanza dalla sorgente.<br>
+        <b>2.</b> Fai produrre un suono <b>stabile e continuo</b> per qualche secondo: una “A” tenuta, o un tono costante.<br>
+        <b>3.</b> Premi <b>Avvia</b>, aspetta che la media si stabilizzi, poi premi <b>Blocca</b>.<br>
+        <b>4.</b> Scrivi il valore letto sul fonometro in quell'istante e salva.
+      </p>
+      <div class="lvwrap" style="margin-top:16px"><div class="lvbar"><div class="lvfill" id="calFill"></div></div></div>
+      <div class="liverow">
+        <div class="livecell"><div class="v" id="calNow">–</div><div class="k">dBFS ora</div></div>
+        <div class="livecell"><div class="v" id="calAvg">–</div><div class="k">Media 3 s</div></div>
+      </div>
+      <div class="status" id="calStatus" style="font-size:17px;margin-top:16px">Premi “Avvia” e fai suonare la sorgente</div>
+      <button class="btn" id="calRun" style="margin-top:14px">Avvia</button>
+      <div id="calForm" style="display:none;margin-top:18px;text-align:left">
+        <label>Valore letto sul fonometro (dB SPL)</label>
+        <input type="text" id="calRef" inputmode="decimal" placeholder="es. 75" autocomplete="off">
+        <p class="hint" id="calPrev" style="min-height:20px"></p>
+        <button class="btn" id="calSave">Salva calibrazione</button>
+      </div>
+      <button class="btn ghost" id="calBack" style="margin-top:10px">Chiudi</button>
     </div>
   </section>
   <!-- QR PAZIENTE -->
@@ -530,7 +570,7 @@ const THEMES = {
 };
 const THEME_ORDER = ["notte","ambra","indaco","foresta","chiaro"];
 
-const DEF_SET = { display:"livello", theme:"notte", orient:"paziente", onsetNorm:-38, onsetLoud:-30, medicoEmail:"", maxDur:15,
+const DEF_SET = { display:"livello", theme:"notte", orient:"paziente", onsetNorm:-38, onsetLoud:-30, medicoEmail:"", maxDur:15, cal:null,
   serie:{ order:["max","forte","normale","glissando"], active:{max:true,forte:true,normale:true,glissando:true}, reps:{max:1,forte:1,normale:1,glissando:1} },
   tono:{ stages:[ {fmin:100,fmax:150,tmin:3,tmax:5,color:"verde"}, {fmin:150,fmax:220,tmin:3,tmax:5,color:"azzurro"}, {fmin:220,fmax:300,tmin:3,tmax:5,color:"rosa"} ] } };
 const SKEY="voce_settings";
@@ -546,10 +586,21 @@ function loadSet(){
     out.tono.stages.forEach((s,i)=>{ if(!s.color) s.color=["verde","azzurro","rosa"][i%3]; });
     if(typeof out.maxDur!=="number") out.maxDur=DEF_SET.maxDur;
     out.maxDur=Math.min(60, Math.max(5, out.maxDur));
+    out.cal=sanitizeCal(s.cal);
+    if(!["livello","db","spl"].includes(out.display)) out.display="livello";
+    if(out.display==="spl" && !out.cal) out.display="livello"; // niente SPL senza calibrazione
     return out;
   }catch{ return JSON.parse(JSON.stringify(DEF_SET)); }
 }
 function saveSet(){ localStorage.setItem(SKEY, JSON.stringify(SET)); }
+// calibrazione SPL: {off,ref,dbfs,date,room}. off = dB SPL di riferimento − dBFS misurati.
+function sanitizeCal(c){
+  if(!c || typeof c!=="object") return null;
+  const off=Number(c.off);
+  if(!isFinite(off) || off<30 || off>160) return null; // offset implausibile => scartato
+  const n=v=>{ const x=Number(v); return isFinite(x)?x:null; };
+  return { off:Math.round(off*10)/10, ref:n(c.ref), dbfs:n(c.dbfs), date:c.date||"", room:c.room||"" };
+}
 
 let CTEAL="#36d6c3", CLIVE="#ff6b54", CLINE="#21323f", CTEALA="rgba(54,214,195,.18)", CMUTED="#7f95a3";
 function applyTheme(id){
@@ -564,10 +615,14 @@ const BAND_COLORS={ verde:"#3ddc84", azzurro:"#49b6ff", rosa:"#ff6fae" };
 const bandColor = name => BAND_COLORS[name] || BAND_COLORS.verde;
 function niceStep(x){ for(const s of [10,20,25,50,100,200,250,500,1000]) if(s>=x) return s; return 1000; }
 
-/* display-mode helpers (dB vs intensità 0-100) */
-const intVal = db => SET.display==="db" ? Math.round(db) : livello(db);
-const intUnit = () => SET.display==="db" ? "dB" : "";
-const intLabel = () => SET.display==="db" ? "dB rel." : "Livello";
+/* display-mode helpers (intensità 0-100 vs dBFS vs dB SPL calibrati) */
+const calOk = () => !!(SET.cal && isFinite(SET.cal.off));
+const splMode = () => SET.display==="spl" && calOk();
+const splOf = db => Math.round(db + SET.cal.off);          // dBFS -> dB SPL stimati
+const intVal = db => splMode() ? splOf(db) : SET.display==="db" ? Math.round(db) : livello(db);
+const intUnit = () => splMode() ? "dB SPL" : SET.display==="db" ? "dB" : "";
+const intLabel = () => splMode() ? "dB SPL" : SET.display==="db" ? "dB rel." : "Livello";
+const intTxt = db => splMode() ? `${splOf(db)} dB SPL` : SET.display==="db" ? `${Math.round(db)} dB` : `${livello(db)}/100`;
 function getRuns(s){ return s.runs ? s.runs : Object.keys(s.results||{}).map(id=>({id,rep:1,m:s.results[id]})); }
 
 
@@ -886,7 +941,7 @@ $("resNext").addEventListener("click", ()=>{
 
 /* ============================ SUMMARY ============================ */
 function keyEsito(id,m){
-  if(id==="max") return SET.display==="db" ? `picco ${Math.round(m.peakDb)} dB` : `livello picco ${livello(m.peakDb)}/100`;
+  if(id==="max") return (SET.display==="livello" ? "livello picco " : "picco ") + intTxt(m.peakDb);
   if(id==="forte"||id==="normale"){ const t=trendTag(m.trendSlope); return `MPT ${m.mpt.toFixed(1)} s · ${t.txt}`; }
   if(id==="glissando"){ const st=m.stages||[]; const ok=st.filter(s=>s.pass).length; return `${ok}/${st.length} fasi mantenute`; }
   return "–";
@@ -913,7 +968,8 @@ function buildSummary(){
   const f=[...session.runs].reverse().find(r=>r.id==="forte");
   const n=[...session.runs].reverse().find(r=>r.id==="normale");
   if(f&&n){
-    const dr = SET.display==="db" ? `${Math.round(f.m.meanDb-n.m.meanDb)} dB` : `${livello(f.m.meanDb)-livello(n.m.meanDb)} punti`;
+    // una differenza in dB SPL è identica a quella in dBFS: l'offset si semplifica
+    const dr = SET.display==="livello" ? `${livello(f.m.meanDb)-livello(n.m.meanDb)} punti` : `${Math.round(f.m.meanDb-n.m.meanDb)} dB`;
     note = `Range dinamico forte − normale: <b style="color:var(--teal)">${dr}</b>. `+note;
   }
   $("sumNote").innerHTML = note;
@@ -960,21 +1016,24 @@ function textReport(s){
   getRuns(s).forEach(r=>{ const t=TESTS.find(x=>x.id===r.id), m=r.m; if(!t)return;
     const tot=getRuns(s).filter(x=>x.id===r.id).length, rp = tot>1?` (rip.${r.rep})`:"";
     o+=`\n• ${t.titolo}${rp}: ${keyEsito(r.id,m)}`;
-    o+=`\n   ${SET.display==="db"?"intensità media "+Math.round(m.meanDb)+" dB":"livello medio "+livello(m.meanDb)+"/100"} · tono ${m.f0.toFixed(0)} Hz`;
+    o+=`\n   ${SET.display==="livello"?"livello medio "+livello(m.meanDb)+"/100":"intensità media "+intTxt(m.meanDb)} · tono ${m.f0.toFixed(0)} Hz`;
     if(t.metrics.includes("jitter")) o+=` · jitter ${m.jitter.toFixed(2)}% · shimmer ${m.shimmer.toFixed(2)}% · HNR ${m.hnr.toFixed(1)} dB`;
   });
   return o;
 }
 
-const CSV_COLS=["data","stanza","paziente","codice","test","ripetizione","mpt_s","meanDb","peakDb","f0_hz","f0sd_hz","f0min","f0max","range_semit","trend_dbs","jitter_pct","shimmer_pct","hnr_db"];
+const CSV_COLS=["data","stanza","paziente","codice","test","ripetizione","mpt_s","meanDb","peakDb","f0_hz","f0sd_hz","f0min","f0max","range_semit","trend_dbs","jitter_pct","shimmer_pct","hnr_db","meanSpl_db","peakSpl_db","cal_offset_db"];
 const CSV_SEP=";";
 function csvRows(sessions){
   const rows=[CSV_COLS.join(CSV_SEP)];
   sessions.forEach(s=>{
+    const off = (typeof s.calOff==="number" && isFinite(s.calOff)) ? s.calOff : null; // null = sessione non calibrata
     getRuns(s).forEach(r=>{ const m=r.m; if(!m)return;
+      const spl = v => (off!==null && typeof v==="number" && isFinite(v)) ? v+off : null;
       const row=[ new Date(s.datetime).toISOString(), s.stanza||"", `${s.nome||""} ${s.cognome||""}`.trim(), s.id||"",
         r.id, r.rep||1, num(m.mpt), num(m.meanDb), num(m.peakDb), num(m.f0), num(m.f0sd), num(m.f0min), num(m.f0max),
-        num(m.range), num(m.trendSlope), num(m.jitter), num(m.shimmer), num(m.hnr) ];
+        num(m.range), num(m.trendSlope), num(m.jitter), num(m.shimmer), num(m.hnr),
+        num(spl(m.meanDb)), num(spl(m.peakDb)), num(off) ];
       rows.push(row.map(csvCell).join(CSV_SEP));
     });
   });
@@ -1125,7 +1184,8 @@ function drawSpark(cv, fr){
 }
 
 /* ============================ MENU / FLUSSI ============================ */
-function newSession(stanza){ session={ nome:"", cognome:"", id:"", stanza:stanza||"", datetime:Date.now(), runs:[] }; }
+function newSession(stanza){ session={ nome:"", cognome:"", id:"", stanza:stanza||"", datetime:Date.now(),
+  calOff: calOk() ? SET.cal.off : null, runs:[] }; } // offset SPL congelato: se ricalibri, lo storico resta corretto
 
 // build single test list
 const sl=$("singleList");
@@ -1316,10 +1376,13 @@ $("roomSave2").addEventListener("click", ()=>{
   $("roomNew2").value=""; refreshRooms(); toast("Stanza aggiunta");
 });
 
-// Display dB / intensità
+// Display dB / intensità / dB SPL
+function syncDisplaySeg(){
+  document.querySelectorAll("#segDisplay button").forEach(x=>x.classList.toggle("on",x.dataset.d===SET.display));
+}
 document.querySelectorAll("#segDisplay button").forEach(b=>b.addEventListener("click",()=>{
-  document.querySelectorAll("#segDisplay button").forEach(x=>x.classList.remove("on"));
-  b.classList.add("on"); SET.display=b.dataset.d; saveSet();
+  if(b.dataset.d==="spl" && !calOk()) return toast("Prima esegui la calibrazione dB SPL");
+  SET.display=b.dataset.d; saveSet(); syncDisplaySeg();
 }));
 // Orientamento
 document.querySelectorAll("#segOrient button").forEach(b=>b.addEventListener("click",()=>{
@@ -1421,10 +1484,10 @@ $("medEmail").addEventListener("input", e=>{ SET.medicoEmail=e.target.value.trim
 
 function openSettings(){
   // reflect current settings into controls
-  document.querySelectorAll("#segDisplay button").forEach(x=>x.classList.toggle("on",x.dataset.d===SET.display));
+  syncDisplaySeg();
   document.querySelectorAll("#segOrient button").forEach(x=>x.classList.toggle("on",x.dataset.o===SET.orient));
   $("medEmail").value = SET.medicoEmail||"";
-  renderThemes(); setSliders(); renderRoomMgr(); renderSerie(); renderTono();
+  renderThemes(); setSliders(); renderRoomMgr(); renderSerie(); renderTono(); renderCalState();
   showView("vInfo");
 }
 
@@ -1444,6 +1507,116 @@ function checkLoop(){
   else if(db > -8){ el.className="status armed"; el.textContent="Troppo forte — allontana il telefono"; }
   else { el.className="status rec"; el.textContent="✓ Distanza e livello OK"; }
 }
+
+/* ============================ CALIBRAZIONE SPL ============================ */
+/* Taratura a un punto: si misura un suono stabile con un fonometro di riferimento
+   accanto al telefono e si registra lo scarto. off = SPL_riferimento − dBFS_misurati,
+   poi dB SPL stimati = dBFS + off. Stima, non taratura metrologica. */
+const CAL_WIN = 3.0;               // finestra di media, secondi
+let calRaf=0, calBuf=[], calFrozen=null;
+
+function renderCalState(){
+  const c=SET.cal;
+  if(calOk()){
+    const quando = c.date ? new Date(c.date).toLocaleDateString("it-IT") : "";
+    const dett = [ c.ref!=null && c.dbfs!=null ? `${c.ref} dB SPL su ${c.dbfs.toFixed(1)} dBFS` : "", c.room||"", quando ]
+      .filter(Boolean).join(" · ");
+    $("calState").innerHTML = `<div class="calbox"><b style="color:var(--good)">Calibrata</b> · offset <b>${c.off.toFixed(1)} dB</b>`
+      + (dett ? `<br><span style="color:var(--muted);font-size:14px">${dett}</span>` : "") + `</div>`;
+  } else {
+    $("calState").innerHTML = `<div class="calbox"><b style="color:var(--muted)">Non calibrata</b>`
+      + `<br><span style="color:var(--muted);font-size:14px">I valori restano Livello 0–100 o dBFS relativi.</span></div>`;
+  }
+  $("calDel").style.display = calOk() ? "" : "none";
+  $("goCal").innerHTML = (calOk() ? "🔊 &nbsp;Ricalibra" : "🔊 &nbsp;Calibra ora") + "&nbsp; ›";
+  $("segSpl").classList.toggle("dim", !calOk());
+  $("splHint").textContent = calOk()
+    ? "“dB SPL” mostra valori stimati dalla calibrazione: confrontabili con i 65/75 dB usati in logopedia."
+    : "“dB SPL” si attiva dopo la calibrazione (più sotto in questa pagina).";
+}
+
+$("goCal").addEventListener("click", async ()=>{ if(!await initMic()) return; calReset(); showView("vCal"); });
+$("calBack").addEventListener("click", ()=>{ calStop(); showView("vInfo"); });
+$("calDel").addEventListener("click", ()=>{
+  if(!calOk()) return;
+  SET.cal=null; if(SET.display==="spl") SET.display="livello";
+  saveSet(); renderCalState(); syncDisplaySeg(); toast("Calibrazione rimossa");
+});
+
+function calStop(){ cancelAnimationFrame(calRaf); calRaf=0; }
+function calReset(){
+  calStop(); calBuf=[]; calFrozen=null;
+  $("calRun").textContent="Avvia";
+  $("calForm").style.display="none"; $("calRef").value=""; $("calPrev").textContent="";
+  $("calNow").textContent="–"; $("calAvg").textContent="–"; $("calFill").style.width="0%";
+  $("calStatus").className="status"; $("calStatus").textContent="Premi “Avvia” e fai suonare la sorgente";
+}
+function calLoop(){
+  calRaf=requestAnimationFrame(calLoop);
+  analyser.getFloatTimeDomainData(buf);
+  const { rms } = detect(buf, sr);
+  const db=dbfs(rms), now=ac.currentTime;
+  $("calFill").style.width=(norm01(db)*100).toFixed(0)+"%";
+  $("calNow").textContent = db>-90 ? db.toFixed(1) : "–";
+  calBuf.push({t:now, rms, db});
+  while(calBuf.length && now-calBuf[0].t > CAL_WIN) calBuf.shift();
+  const a=calAvgDb();
+  $("calAvg").textContent = a===null ? "–" : a.toFixed(1);
+  if(a===null){ setCal("armed","Segnale assente o troppo debole — alza il volume o avvicina il telefono"); return; }
+  const sp=calSpread();
+  if(sp!==null && sp<=3) setCal("rec",'<span class="dot"></span>Livello stabile — premi “Blocca” leggendo il fonometro');
+  else setCal("armed",'<span class="dot pulse"></span>Misura in corso — aspetta che il livello si stabilizzi');
+}
+function setCal(cls,html){ const el=$("calStatus"); el.className="status "+(cls||""); el.innerHTML=html; }
+// media di ENERGIA sulla finestra (non media dei dB): è la media corretta per un livello
+function calAvgDb(){
+  if(calBuf.length<20) return null;
+  const e=calBuf.reduce((acc,x)=>acc+x.rms*x.rms,0)/calBuf.length;
+  const d=dbfs(Math.sqrt(e));
+  return d>-70 ? d : null;
+}
+// escursione dei dB nella finestra: dice se il suono è davvero stabile
+function calSpread(){
+  if(calBuf.length<20) return null;
+  let lo=99, hi=-99; calBuf.forEach(x=>{ if(x.db<lo)lo=x.db; if(x.db>hi)hi=x.db; });
+  return hi-lo;
+}
+$("calRun").addEventListener("click", ()=>{
+  if(!calRaf){
+    calBuf=[]; calFrozen=null; $("calForm").style.display="none"; $("calPrev").textContent="";
+    $("calRun").textContent="Blocca";
+    setCal("armed",'<span class="dot pulse"></span>Misura in corso — aspetta che il livello si stabilizzi');
+    calLoop(); return;
+  }
+  const a=calAvgDb();
+  if(a===null) return toast("Segnale assente o troppo debole");
+  calStop(); calFrozen=a;
+  $("calRun").textContent="Riprendi misura";
+  setCal("", `Misura bloccata a <b>${a.toFixed(1)} dBFS</b> — scrivi il valore letto sul fonometro`);
+  $("calForm").style.display=""; $("calRef").focus();
+});
+const calRefVal = () => parseFloat(($("calRef").value||"").replace(",","."));
+$("calRef").addEventListener("input", ()=>{
+  const r=calRefVal();
+  if(calFrozen===null || !isFinite(r)){ $("calPrev").textContent=""; return; }
+  const off=r-calFrozen;
+  $("calPrev").innerHTML = (off<30||off>160)
+    ? '<span style="color:var(--bad)">Scarto non plausibile — controlla la lettura o ripeti la misura.</span>'
+    : `Offset <b>${off.toFixed(1)} dB</b> · 0 dBFS ≙ ${Math.round(off)} dB SPL`;
+});
+$("calSave").addEventListener("click", ()=>{
+  if(calFrozen===null) return toast("Prima blocca una misura");
+  const r=calRefVal();
+  if(!isFinite(r) || r<30 || r>130) return toast("Inserisci un valore fra 30 e 130 dB SPL");
+  const off=r-calFrozen;
+  if(off<30 || off>160) return toast("Scarto non plausibile — ripeti la misura");
+  SET.cal={ off:Math.round(off*10)/10, ref:Math.round(r*10)/10, dbfs:Math.round(calFrozen*10)/10,
+            date:Date.now(), room:(localStorage.getItem(RSEL)||"") };
+  SET.display="spl"; saveSet();
+  renderCalState(); syncDisplaySeg(); calReset();
+  toast("Calibrazione salvata — valori in dB SPL");
+  showView("vInfo");
+});
 
 /* apply persisted settings on load */
 applyTheme(SET.theme);
