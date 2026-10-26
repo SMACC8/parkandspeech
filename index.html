@@ -1122,8 +1122,46 @@ function renderHist(){
 }
 
 /* ============================ SCOPE / SPARK ============================ */
-let scope, sctx, scopeHist=[];
-function clearScope(){ scope=$("scope"); sctx=scope.getContext("2d"); scopeHist=[]; drawScope(); }
+// scala del volume per la griglia: unità mostrata ↔ dBFS (dipende da modo e calibrazione)
+const volScale = () => splMode()
+  ? { unit:"dB SPL", to:db=>db+SET.cal.off, from:v=>v-SET.cal.off }
+  : SET.display==="db" ? { unit:"dB", to:db=>db, from:v=>v }
+  : { unit:"", to:db=>norm01(db)*100, from:v=>v/100*55-60 };
+let scope, sctx, scopeHist=[], gridBg="#0f1a24";
+function clearScope(){ scope=$("scope"); sctx=scope.getContext("2d"); scopeHist=[];
+  gridBg=getComputedStyle(document.documentElement).getPropertyValue("--panel2").trim()||gridBg; drawScope(); }
+
+/* Griglia del volume nel grafico live, come in un fonometro: righe orizzontali col valore
+   (dB SPL se calibrato, altrimenti dB o Livello). Stessa finestra di norm01: −60..−5 dBFS. */
+function volTicks(){
+  const sc=volScale(), lo=sc.to(-60), hi=sc.to(-5), span=hi-lo;
+  const step=[5,10,20,25,50].find(st=>span/st<=7) || 50;   // al massimo ~7 righe
+  const ticks=[];
+  for(let v=Math.ceil(lo/step)*step; v<=hi; v+=step){
+    const lv=norm01(sc.from(v));
+    if(lv>0.06 && lv<0.97) ticks.push({ lv, txt:String(Math.round(v)) });
+  }
+  return { ticks, unit:sc.unit };
+}
+function drawGridLines(w,h,g){
+  sctx.save();
+  sctx.strokeStyle=CMUTED; sctx.globalAlpha=.4; sctx.lineWidth=1; sctx.setLineDash([5,6]);
+  g.ticks.forEach(t=>{ const y=Math.round(h-t.lv*(h-12))+.5; sctx.beginPath(); sctx.moveTo(0,y); sctx.lineTo(w,y); sctx.stroke(); });
+  sctx.restore();
+}
+function drawGridLabels(w,h,g){
+  // il canvas è stirato dal CSS (larghezza 100%, altezza fissa): si compensa per non deformare il testo
+  const sx=(scope.clientWidth||w)/w, sy=(scope.clientHeight||h)/h;
+  sctx.save(); sctx.scale(1/sx,1/sy);
+  sctx.font="600 12px system-ui,-apple-system,sans-serif"; sctx.textBaseline="middle";
+  g.ticks.forEach((t,i)=>{
+    const txt = (i===g.ticks.length-1 && g.unit) ? `${t.txt} ${g.unit}` : t.txt;   // unità sulla riga più alta
+    const y=(h-t.lv*(h-12))*sy, tw=sctx.measureText(txt).width;
+    sctx.globalAlpha=.85; sctx.fillStyle=gridBg; sctx.fillRect(4,y-8,tw+8,16);
+    sctx.globalAlpha=1; sctx.fillStyle=CMUTED; sctx.fillText(txt,8,y);
+  });
+  sctx.restore();
+}
 function pushScope(level,f0){ scopeHist.push({level,f0}); if(scopeHist.length>scope.width) scopeHist.shift(); }
 // linea del tono continua: collega anche attraverso buchi brevi (fino a maxGap frame)
 function drawF0Line(mapY, maxGap, width){
@@ -1141,7 +1179,9 @@ function drawScope(){
   const w=scope.width,h=scope.height;
   sctx.clearRect(0,0,w,h);
   if(curTest && curTest.id==="glissando"){ drawScopeTono(w,h); return; }
-  // baseline grid
+  const grid=volTicks();
+  drawGridLines(w,h,grid);
+  // baseline
   sctx.strokeStyle=CLINE; sctx.lineWidth=1;
   sctx.beginPath(); sctx.moveTo(0,h-1); sctx.lineTo(w,h-1); sctx.stroke();
   // intensity area
@@ -1152,8 +1192,8 @@ function drawScope(){
   sctx.beginPath();
   scopeHist.forEach((p,i)=>{ const y=h-p.level*(h-12); i?sctx.lineTo(i,y):sctx.moveTo(i,y); });
   sctx.strokeStyle=CTEAL; sctx.lineWidth=2; sctx.stroke();
-  // f0 line (normalized 60..400 Hz), con ponte sui buchi brevi
-  sctx.strokeStyle=CLIVE; drawF0Line(f0=> h-((f0-60)/340)*(h-12), 10, 2);
+  // niente linea del tono qui: su una griglia in dB confonderebbe (resta nel grafico dei risultati)
+  drawGridLabels(w,h,grid);
 }
 function drawScopeTono(w,h){
   const stages=SET.tono.stages;

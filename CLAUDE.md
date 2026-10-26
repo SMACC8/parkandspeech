@@ -93,7 +93,16 @@ Sono tutti nati da bug reali costati settimane. Prima di toccarli, capire perch�
    occupato / assente) con i passi giusti per Android, iOS o computer; avviso rosso
    nel menu se il permesso risulta già negato. Non tornare al semplice toast.
 
-9. **Service worker network-first**, con versione cache da incrementare ad ogni
+9. **Griglia del volume nel grafico live** (`volTicks`, `volScale`), in entrambe le
+   app, sui test di intensità (non nel Cambio di tono, che ha la sua scala in Hz).
+   Righe con valori in dB SPL se calibrato, altrimenti dB o Livello; massimo ~7
+   righe. Il canvas è stirato dal CSS: le etichette compensano con `scale(1/sx,1/sy)`.
+   La linea rossa del tono è stata tolta dal grafico live di questi test (sulla
+   griglia in dB confondeva); resta nel grafico dei risultati. `volScale` è
+   l'unico pezzo diverso fra le app: la clinica ha calibrazione a offset, l'app
+   paziente a due punti (`spl = a·dBFS + b`).
+
+10. **Service worker network-first**, con versione cache da incrementare ad ogni
    rilascio (`voce-vN` e `voce-paz-vN`), altrimenti i telefoni servono la versione
    vecchia. Se una PWA è già installata, spesso serve disinstallare + hard refresh.
 
