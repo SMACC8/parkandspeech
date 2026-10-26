@@ -98,6 +98,11 @@
   .status{font-size:16px;font-weight:600;margin:14px 0 2px;min-height:24px}
   .status.armed{color:var(--live)}
   .status.rec{color:var(--good)}
+  .micwarn{display:none;width:100%;margin:0 0 14px;padding:14px 16px;border-radius:14px;border:1.5px solid var(--bad);background:transparent;color:var(--bad);font-size:16px;font-weight:600;text-align:left;line-height:1.35}
+  .micwarn.on{display:block}
+  .micbox{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px;font-size:16px;line-height:1.5}
+  .micsteps{margin:8px 0 0;padding-left:22px}
+  .micsteps li{margin-bottom:6px}
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--live);margin-right:7px;vertical-align:middle}
   .pulse{animation:pulse 1s infinite}
   @keyframes pulse{50%{opacity:.25}}
@@ -168,6 +173,7 @@
 
   <!-- MENU -->
   <section id="vMenu" class="view on">
+    <button class="micwarn" id="micWarn">⚠️ Il microfono è bloccato per questa app — tocca qui per sistemarlo</button>
     <div class="menu">
       <button class="mbtn" id="mSingle"><span class="mi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5" fill="var(--teal)" stroke="none"/></svg></span><span>Test singolo<span class="msub">Un esercizio a scelta</span></span></button>
       <button class="mbtn" id="mSerie"><span class="mi"><svg viewBox="0 0 24 24"><path d="M8 6h11M8 12h11M8 18h11"/><circle cx="4" cy="6" r="1.5" fill="var(--teal)" stroke="none"/><circle cx="4" cy="12" r="1.5" fill="var(--teal)" stroke="none"/><circle cx="4" cy="18" r="1.5" fill="var(--teal)" stroke="none"/></svg></span><span>Test in serie<span class="msub">Sequenza guidata di esercizi</span></span></button>
@@ -332,6 +338,7 @@
       <p class="hint">La soglia "normale" non può superare la "forte": si spingono a vicenda. Più basso (verso −55) = più sensibile.</p>
       <p class="hint" style="margin-top:12px">“Intensità massima” e “Cambio di tono” usano la <b>registrazione continua</b>: non si fermano alle pause e proseguono <b>finché premi “Ferma ora”</b> (utile per contare a voce alta o liste di parole).</p>
       <button class="btn" id="goCheck" style="margin-top:18px">📏 &nbsp;Check distanza / livello&nbsp; ›</button>
+      <button class="btn ghost" id="goMicHelp" style="margin-top:10px">🎤 &nbsp;Il microfono non funziona?</button>
     </div>
 
     <div class="card">
@@ -515,13 +522,18 @@
         <button class="btn sec" id="sttCopy">Copia</button>
       </div>
       <p class="hint">Scrive in tempo reale ciò che viene detto. Richiede <b>connessione a internet</b> e funziona al meglio su <b>Android/Chrome</b> (su iPhone è inaffidabile).</p>
-      <details style="margin-top:10px">
-        <summary style="cursor:pointer;color:var(--teal);font-weight:600;font-size:15px">Il microfono non è autorizzato?</summary>
-        <p class="hint" style="margin-top:8px">Il permesso va dato <b>al browser per questo sito</b>, non all'app Google.<br><br>
-        <b>Android/Chrome:</b> apri l'app, tocca i <b>tre puntini ⋮ → Informazioni sito</b> (o l'icona a sinistra dell'indirizzo) → <b>Autorizzazioni → Microfono → Consenti</b>.<br><br>
-        <b>Se l'app è installata in Home:</b> Impostazioni Android → <b>App</b> → cerca l'app → <b>Autorizzazioni → Microfono → Consenti</b>.<br><br>
-        <b>In alternativa:</b> Chrome → ⋮ → Impostazioni → <b>Impostazioni sito → Microfono</b> → trova l'indirizzo dell'app → Consenti.</p>
-      </details>
+      <button class="btn ghost" id="sttMicHelp" style="margin-top:10px">🎤 &nbsp;Il microfono non è autorizzato?</button>
+    </div>
+  </section>
+
+  <!-- AIUTO MICROFONO -->
+  <section id="vMic" class="view">
+    <div class="card">
+      <div class="ttitle" style="font-size:22px">🎤 Microfono</div>
+      <div class="status" id="micWhy" style="font-size:18px"></div>
+      <div id="micBody"></div>
+      <button class="btn" id="micRetry" style="margin-top:18px">Riprova</button>
+      <button class="btn ghost" id="micBack" style="margin-top:10px">Indietro</button>
     </div>
   </section>
 </div>
@@ -649,7 +661,7 @@ async function initMic(){
     micReady = true;
     return true;
   }catch(e){
-    toast("Microfono non disponibile — controlla i permessi");
+    micFail(e);   // mostra la schermata di aiuto adatta al tipo di errore e al dispositivo
     return false;
   }
 }
@@ -1187,11 +1199,13 @@ function drawSpark(cv, fr){
 function newSession(stanza){ session={ nome:"", cognome:"", id:"", stanza:stanza||"", datetime:Date.now(),
   calOff: calOk() ? SET.cal.off : null, runs:[] }; } // offset SPL congelato: se ricalibri, lo storico resta corretto
 
-// build single test list
+// build single test list — ordine voluto dalla logopedista; "Normale e lungo" escluso
+// (lo misura col solo cronometro). Resta disponibile nel Test in serie.
+const SINGLE_ORDER=["forte","glissando","max"];
 const sl=$("singleList");
-TESTS.forEach(t=>{
+SINGLE_ORDER.map(id=>TESTS.find(t=>t.id===id)).forEach((t,i)=>{
   const el=document.createElement("button"); el.className="titem";
-  el.innerHTML=`<span class="n">${t.n}</span><span><span class="tt">${t.titolo}</span><span class="td">${t.istruzione.replace(/<[^>]+>/g,"")}</span></span>`;
+  el.innerHTML=`<span class="n">${i+1}</span><span><span class="tt">${t.titolo}</span><span class="td">${t.istruzione.replace(/<[^>]+>/g,"")}</span></span>`;
   el.addEventListener("click",()=>{ newSession($("roomS").value); mode="single"; queue=[t.id]; qIdx=0; startTest(t); });
   sl.appendChild(el);
 });
@@ -1294,7 +1308,8 @@ function startRec(){
     if(e.error==="not-allowed"||e.error==="service-not-allowed"){
       recRunning=false; sttUI(false);
       $("sttStatus").className="status armed";
-      $("sttStatus").textContent="Microfono non autorizzato per questo sito — vedi le istruzioni qui sotto";
+      $("sttStatus").textContent="Microfono non autorizzato per questo sito";
+      openMicHelp("denied");
       return;
     }
     if(e.error==="network"){ toast("Serve una connessione a internet"); return; }
@@ -1622,6 +1637,97 @@ $("calSave").addEventListener("click", ()=>{
 applyTheme(SET.theme);
 
 renderRooms();
+
+/* ============================ AIUTO MICROFONO ============================ */
+/* L'app installata in Home gira DENTRO il browser: il permesso del microfono lo custodisce
+   il browser (per questo sito), e NON compare tra le autorizzazioni dell'app in Android,
+   dove si vedono solo le Notifiche. Le istruzioni guidano quindi al browser. */
+const UA = navigator.userAgent || "";
+const IS_IOS = /iPhone|iPad|iPod/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
+// IS_ANDROID è già definita più sopra (Dettato)
+const IS_SAMSUNG = /SamsungBrowser/.test(UA);
+const IS_STANDALONE = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+let micBackView = "vMenu";
+
+function micReason(e){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return "unsupported";
+  const n = (e && e.name) || "";
+  if(n==="NotAllowedError" || n==="PermissionDeniedError" || n==="SecurityError") return "denied";
+  if(n==="NotFoundError" || n==="DevicesNotFoundError" || n==="OverconstrainedError") return "missing";
+  if(n==="NotReadableError" || n==="TrackStartError" || n==="AbortError") return "busy";
+  return "other";
+}
+const MIC_WHY = {
+  denied: "Il microfono non è autorizzato per questa app.",
+  missing: "Non trovo nessun microfono.",
+  busy: "Il microfono è occupato da un'altra app (telefonata, registratore, messaggio vocale…). Chiudila e premi Riprova.",
+  unsupported: "Questo browser non permette di usare il microfono. Apri l'app con Chrome (Android) o Safari (iPhone).",
+  other: "Non riesco a usare il microfono.",
+  check: "Come autorizzare il microfono",
+};
+function micStepsHtml(){
+  const host = location.host || "questo sito";
+  if(IS_ANDROID){
+    const b = IS_SAMSUNG ? "Samsung Internet" : "Chrome";
+    const menu = IS_SAMSUNG
+      ? "Menu <b>≡</b> → <b>Impostazioni</b> → cerca le <b>autorizzazioni dei siti</b> → <b>Microfono</b>"
+      : "Tre puntini <b>⋮</b> in alto a destra → <b>Impostazioni</b> → <b>Impostazioni sito</b> → <b>Microfono</b>";
+    return `<p class="hint" style="font-size:15px;margin-top:10px">Perché non lo trovi tra le autorizzazioni dell'app? Questa app funziona <b>dentro ${b}</b>: il permesso del microfono lo tiene ${b}, non l'app. Nelle impostazioni dell'app vedrai solo le Notifiche: è normale.</p>`
+      + (IS_STANDALONE ? "" : `<div class="micbox"><b>Via più rapida:</b> tocca l'icona a sinistra dell'indirizzo, in alto → <b>Autorizzazioni</b> → <b>Microfono</b> → <b>Consenti</b>.</div>`)
+      + `<div class="micbox"><b>Passo 1 — il telefono deve dare il microfono a ${b}</b><ol class="micsteps">
+          <li>Apri le <b>Impostazioni</b> del telefono</li>
+          <li><b>App</b> → <b>${b}</b></li>
+          <li><b>Autorizzazioni</b> → <b>Microfono</b></li>
+          <li>Scegli <b>Consenti</b> (o “solo mentre l'app è in uso”)</li></ol></div>`
+      + `<div class="micbox"><b>Passo 2 — ${b} deve dare il microfono a questo sito</b><ol class="micsteps">
+          <li>Apri l'app <b>${b}</b> (il browser, non questa app)</li>
+          <li>${menu}</li>
+          <li>L'interruttore in alto deve essere <b>acceso</b></li>
+          <li>Se sotto “Bloccati” c'è <b>${host}</b>: toccalo → <b>Consenti</b></li></ol></div>`
+      + `<div class="micbox"><b>Passo 3</b> — chiudi del tutto questa app (anche dalle app recenti), riaprila e premi <b>Riprova</b>. Se compare la domanda sul microfono, tocca <b>Consenti</b>.</div>`;
+  }
+  if(IS_IOS){
+    return `<div class="micbox"><ol class="micsteps">
+        <li>Apri le <b>Impostazioni</b> dell'iPhone / iPad</li>
+        <li>Scorri fino a <b>Safari</b> (o <b>Chrome</b>, se usi quello)</li>
+        <li><b>Microfono</b> → <b>Chiedi</b> oppure <b>Consenti</b></li>
+        <li>Chiudi e riapri questa app, poi premi <b>Riprova</b></li></ol></div>`;
+  }
+  return `<div class="micbox"><ol class="micsteps">
+      <li>Clicca l'icona a sinistra dell'indirizzo (lucchetto o regolazioni) → <b>Microfono</b> → <b>Consenti</b>, poi ricarica la pagina</li>
+      <li><b>Su Mac</b>: Impostazioni di Sistema → <b>Privacy e sicurezza</b> → <b>Microfono</b> → attiva il browser</li>
+      <li>Controlla che il microfono giusto sia selezionato nelle impostazioni audio del computer</li></ol></div>`;
+}
+function openMicHelp(reason){
+  const cur = document.querySelector(".view.on");
+  if(cur && cur.id==="vMic") toast("Ancora non funziona — controlla i passi qui sotto");
+  else if(cur) micBackView = cur.id;
+  $("micWhy").className = "status" + (reason==="check" ? "" : " armed");
+  $("micWhy").textContent = MIC_WHY[reason] || MIC_WHY.other;
+  const steps = micStepsHtml();
+  $("micBody").innerHTML = (reason==="busy" || reason==="missing")
+    ? `<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--teal);font-weight:600">Se invece è un problema di permessi</summary>${steps}</details>`
+    : steps;
+  showView("vMic");
+}
+function micFail(e){ openMicHelp(micReason(e)); }
+// avviso nel menu quando il browser dice già che il permesso è negato (dove l'API esiste)
+async function refreshMicWarn(){
+  try{
+    if(!navigator.permissions || !navigator.permissions.query) return;
+    const st = await navigator.permissions.query({ name:"microphone" });
+    const upd = () => $("micWarn").classList.toggle("on", st.state==="denied");
+    upd(); st.onchange = upd;
+  }catch(e){ /* browser senza supporto: nessun avviso */ }
+}
+$("micWarn").addEventListener("click", ()=> openMicHelp("denied"));
+$("goMicHelp").addEventListener("click", ()=> openMicHelp("check"));
+$("sttMicHelp").addEventListener("click", ()=> openMicHelp("check"));
+$("micBack").addEventListener("click", ()=> showView(micBackView));
+$("micRetry").addEventListener("click", async ()=>{
+  if(await initMic()){ toast("Microfono attivo ✓"); refreshMicWarn(); showView(micBackView); }
+});
+refreshMicWarn();
 
 /* ============================ TOAST ============================ */
 let toastTimer;

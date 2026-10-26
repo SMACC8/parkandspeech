@@ -22,7 +22,9 @@ Le due app condividono lo stesso "motore" audio duplicato nei due file:
 
 ## Differenze fra le due
 
-**Clinica**: menu con Test singolo · Test in serie · Cronometro · Storico ·
+**Clinica**: Test singolo (solo 3, in quest'ordine: Forte e lungo · Cambio di tono ·
+Intensità massima — "Normale e lungo" tolta su richiesta, la misura col cronometro;
+resta nel Test in serie) · Test in serie · Cronometro · Storico ·
 Dettato · QR paziente · Impostazioni e info. Storico su `localStorage`, export
 CSV, invio via email, anagrafica paziente chiesta **al salvataggio** (non prima).
 
@@ -84,7 +86,14 @@ Sono tutti nati da bug reali costati settimane. Prima di toccarli, capire perch�
    Le colonne SPL (`meanSpl_db`, `peakSpl_db`, `cal_offset_db`) sono **in coda**:
    l'ordine delle colonne storiche non va cambiato, chi ha già fogli Excel li romperebbe.
 
-8. **Service worker network-first**, con versione cache da incrementare ad ogni
+8. **Aiuto microfono (`vMic`, `openMicHelp`)**, in entrambe le app. La PWA
+   installata gira dentro il browser: in Android il microfono **non compare** fra le
+   autorizzazioni dell'app (si vedono solo le Notifiche) — è un permesso di Chrome
+   per il sito. Quando `getUserMedia` fallisce, l'app spiega il perché (negato /
+   occupato / assente) con i passi giusti per Android, iOS o computer; avviso rosso
+   nel menu se il permesso risulta già negato. Non tornare al semplice toast.
+
+9. **Service worker network-first**, con versione cache da incrementare ad ogni
    rilascio (`voce-vN` e `voce-paz-vN`), altrimenti i telefoni servono la versione
    vecchia. Se una PWA è già installata, spesso serve disinstallare + hard refresh.
 
