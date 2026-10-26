@@ -34,7 +34,7 @@ CSV, invio via email, anagrafica paziente chiesta **al salvataggio** (non prima)
 **Paziente**: 3 esercizi (Intensità massima, Forte e lungo, Cambio di tono)
 + **Serie LSVT** + Cronometro + Dettato + check distanza. **Niente storico, niente
 salvataggi, niente impostazioni**, con due eccezioni volute: l'area del clinico
-(pressione lunga sul logo: calibrazione, linea obiettivo, ripetizioni LSVT) e gli
+(pressione lunga sul logo: calibrazione, linea obiettivo, ripetizioni e livello LSVT) e gli
 **ultimi 20 risultati della Serie LSVT** (`voce_lsvt_ultimi`), per confrontare le
 frequenze nel tempo. Esclusa "Normale e lungo" perché puramente valutativa.
 
@@ -131,8 +131,9 @@ pausa** tra i vocalizzi, 5 s prima di ogni blocco. Ogni vocalizzo si chiude quan
 voce si ferma (non è registrazione continua: il vincolo 3 non c'entra).
 - Forte e lungo: vale se dura **≥ 5 s**; c'è la linea obiettivo.
 - Acuti/gravi: **nessuna soglia in Hz** (scelta della logopedista: conta che si veda
-  il cambio). Tono di partenza = mediana dei primi 0,5 s; cambio = ≥ 2 semitoni nella
-  direzione giusta per 0,2 s; vale se tenuto **5 s dal cambio**. Grafico del tono su
+  il cambio). Tono di partenza = mediana dei primi 0,5 s; cambio = ≥ N semitoni nella
+  direzione giusta per 0,2 s, con N = **livello** regolabile (`SET.lsvt.st`: Facile 1 ·
+  Medio 2 · Difficile 3; default Facile, dopo che 2 risultava faticoso già a Sergio); vale se tenuto **5 s dal cambio**. Grafico del tono su
   scala logaritmica con riga di partenza e soglia.
 - Se non vale, **si ripete lo stesso vocalizzo**. I 5 s si contano sull'ultimo istante
   con voce (`tv`), non sul tempo trascorso: un'app ferma un attimo non regala secondi.
@@ -172,7 +173,8 @@ verificata la compatibilità iOS.
 
 - **Serie LSVT: verifica sul campo** (fatta il 26/10/2026, provata solo con voce
   simulata). Da controllare con pazienti veri soprattutto la soglia del cambio di
-  tono (`LS_ST` = 2 semitoni) e gli errori d'ottava del rilevatore di tono.
+  tono (livello `SET.lsvt.st`, default Facile = 1 semitono: a 1 semitono il rischio è che basti
+  un'oscillazione naturale della voce) e gli errori d'ottava del rilevatore di tono.
 - La logopedista **non ha un fonometro**: la calibrazione SPL per ora non si usa.
 
 ## Storia dei feedback clinici (sintesi)

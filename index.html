@@ -393,6 +393,9 @@
         <div id="lsRepsVal" style="flex:1;text-align:center;font-family:var(--num);font-size:34px;font-weight:600">15</div>
         <button class="mini" id="lsRepsPlus" style="width:52px;height:52px;font-size:26px">+</button>
       </div>
+      <label style="margin-top:14px">Cambio di tono richiesto (acuti e gravi)</label>
+      <div class="seg" id="lsStSeg"><button data-st="1">Facile</button><button data-st="2">Medio</button><button data-st="3">Difficile</button></div>
+      <p class="hint">Quanto deve salire o scendere la voce rispetto al tono di partenza: Facile ≈ 6%, Medio ≈ 12%, Difficile ≈ 19% (1, 2, 3 semitoni).</p>
     </div>
 
     <div class="card">
@@ -693,7 +696,7 @@ const THEMES = {
 const THEME_ORDER = ["notte","ambra","indaco","foresta","chiaro"];
 
 const SERIE_IDS=["forte","glissando","max"]; // "Normale e lungo" tolta su richiesta: la misura col cronometro
-const DEF_SET = { display:"livello", theme:"notte", orient:"paziente", onsetNorm:-38, onsetLoud:-30, medicoEmail:"", maxDur:15, cal:null, goal:{on:false,unit:"",v:null}, lsvt:{reps:15},
+const DEF_SET = { display:"livello", theme:"notte", orient:"paziente", onsetNorm:-38, onsetLoud:-30, medicoEmail:"", maxDur:15, cal:null, goal:{on:false,unit:"",v:null}, lsvt:{reps:15, st:1},
   serie:{ order:SERIE_IDS.slice(), active:{max:true,forte:true,normale:true,glissando:true}, reps:{max:1,forte:1,normale:1,glissando:1} },
   tono:{ stages:[ {fmin:100,fmax:150,tmin:3,tmax:5,color:"verde"}, {fmin:150,fmax:220,tmin:3,tmax:5,color:"azzurro"}, {fmin:220,fmax:300,tmin:3,tmax:5,color:"rosa"} ] } };
 const SKEY="voce_settings";
@@ -714,7 +717,7 @@ function loadSet(){
     out.maxDur=Math.min(60, Math.max(5, out.maxDur));
     const g=s.goal||{}; // linea obiettivo: valore nell'unità mostrata quando è stata impostata
     out.goal={ on:!!g.on, unit:typeof g.unit==="string"?g.unit:"", v:Number.isFinite(g.v)?g.v:null };
-    const L=s.lsvt||{}; out.lsvt={ reps:Math.min(15, Math.max(1, Math.round(Number(L.reps)||15))) };
+    const L=s.lsvt||{}; out.lsvt={ reps:Math.min(15, Math.max(1, Math.round(Number(L.reps)||15))), st:[1,2,3].includes(L.st)?L.st:1 };
     out.cal=sanitizeCal(s.cal);
     if(!["livello","db","spl"].includes(out.display)) out.display="livello";
     if(out.display==="spl" && !out.cal) out.display="livello"; // niente SPL senza calibrazione
@@ -1858,7 +1861,7 @@ renderRooms();
 const LS_REMEMBER = false;  // app clinica: più pazienti sullo stesso telefono, niente confronti automatici
 const LS_HOLD = 5;                       // secondi richiesti
 const LS_PAUSE = 3, LS_PAUSE_BLOCK = 5;  // pausa tra vocalizzi / prima di ogni blocco
-const LS_ST = 2;                         // cambio di tono minimo, in semitoni (~12%): "basta che si veda"
+const lsSt = () => SET.lsvt.st;          // cambio di tono minimo, in semitoni (1/2/3 = Facile/Medio/Difficile)
 const LS_SIL = 0.5;                      // silenzio che chiude il vocalizzo
 const LS_KEY = "voce_lsvt_ultimi";
 const LS_BLOCKS = [
@@ -1940,7 +1943,7 @@ function lsLoop(){
       }
     } else if(r.tChange===null){
       const st=lsSemi(r);
-      if(st!==null && st*dir>=LS_ST){ if(r.since===null) r.since=t; if(t-r.since>=0.2) r.tChange=r.since; }
+      if(st!==null && st*dir>=lsSt()){ if(r.since===null) r.since=t; if(t-r.since>=0.2) r.tChange=r.since; }
       else r.since=null;
     }
     if(r.tChange!==null && !r.okAt){
@@ -1991,7 +1994,7 @@ function lsDraw(B,r){
   const grid={ ticks:[100,150,200,300,400].map(f=>({ lv:lv(f), txt:String(f) })), unit:"Hz" };
   drawGridLines(w,h,grid);
   if(r && r.base){
-    const dir=B.id==="acuto"?1:-1, ft=r.base*Math.pow(2,dir*LS_ST/12);
+    const dir=B.id==="acuto"?1:-1, ft=r.base*Math.pow(2,dir*lsSt()/12);
     sctx.save(); sctx.globalAlpha=.16; sctx.fillStyle=goalCol;             // zona "cambio fatto"
     if(dir>0) sctx.fillRect(0,0,w,y(ft)); else sctx.fillRect(0,y(ft),w,h-y(ft));
     sctx.globalAlpha=1; sctx.strokeStyle=goalCol; sctx.lineWidth=2; sctx.setLineDash([6,5]);
@@ -2044,7 +2047,11 @@ $("mLsvt").addEventListener("click", lsStart);
 $("lsAgain").addEventListener("click", lsStart);
 $("lsStop").addEventListener("click", ()=>{ if(ls) lsFinish(); });
 $("lsHome").addEventListener("click", ()=> showView("vMenu"));
-function renderLsReps(){ $("lsRepsVal").textContent=SET.lsvt.reps; }
+function renderLsReps(){
+  $("lsRepsVal").textContent=SET.lsvt.reps;
+  document.querySelectorAll("#lsStSeg button").forEach(b=>b.classList.toggle("on", Number(b.dataset.st)===SET.lsvt.st));
+}
+document.querySelectorAll("#lsStSeg button").forEach(b=>b.addEventListener("click",()=>{ SET.lsvt.st=Number(b.dataset.st); saveSet(); renderLsReps(); }));
 $("lsRepsMinus").addEventListener("click", ()=>{ SET.lsvt.reps=Math.max(1,SET.lsvt.reps-1); saveSet(); renderLsReps(); });
 $("lsRepsPlus").addEventListener("click", ()=>{ SET.lsvt.reps=Math.min(15,SET.lsvt.reps+1); saveSet(); renderLsReps(); });
 
