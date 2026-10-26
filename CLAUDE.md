@@ -25,7 +25,9 @@ Le due app condividono lo stesso "motore" audio duplicato nei due file:
 **Clinica**: Test singolo (solo 3, in quest'ordine: Forte e lungo · Cambio di tono ·
 Intensità massima — "Normale e lungo" tolta su richiesta, la misura col cronometro;
 resta nel Test in serie) · Test in serie · Cronometro · Storico ·
-Dettato · QR paziente · Impostazioni e info. Storico su `localStorage`, export
+Dettato · QR paziente (con **foglio A4 stampabile** per il paziente: QR di
+installazione, permesso microfono, posizione del telefono; `#printSheet`, visibile
+solo in stampa) · Impostazioni e info. Storico su `localStorage`, export
 CSV, invio via email, anagrafica paziente chiesta **al salvataggio** (non prima).
 
 **Paziente**: solo 3 esercizi (Intensità massima, Forte e lungo, Cambio di tono)
