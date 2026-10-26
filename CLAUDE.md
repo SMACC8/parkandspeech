@@ -104,6 +104,14 @@ Sono tutti nati da bug reali costati settimane. Prima di toccarli, capire perch�
    l'unico pezzo diverso fra le app: la clinica ha calibrazione a offset, l'app
    paziente a due punti (`spl = a·dBFS + b`).
 
+   **Linea obiettivo** (`SET.goal = {on, unit, v}`, `goalLv`, `drawGoal`): riga
+   verde a un valore scelto dal clinico; il tracciato sopra la riga diventa verde e
+   compare "✓ obiettivo". Il valore vale **solo nell'unità in cui è stato impostato**
+   (dB SPL / dB / Livello): se cambiano calibrazione o visualizzazione la riga
+   sparisce e va reimpostata, per non indicare un livello sbagliato. Si imposta:
+   clinica → Impostazioni; app paziente → pressione lunga sul logo (area clinico,
+   insieme alla calibrazione). Spenta di default.
+
 10. **Service worker network-first**, con versione cache da incrementare ad ogni
    rilascio (`voce-vN` e `voce-paz-vN`), altrimenti i telefoni servono la versione
    vecchia. Se una PWA è già installata, spesso serve disinstallare + hard refresh.

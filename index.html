@@ -370,6 +370,21 @@
     </div>
 
     <div class="card">
+      <div class="ttitle" style="font-size:22px">Linea obiettivo</div>
+      <p class="hint" style="margin-top:0">Una riga verde nel grafico dei test di intensità: quando la voce la supera, il tracciato diventa verde. Utile per i pazienti in difficoltà.</p>
+      <div class="seg" id="goalSeg"><button data-g="off">Spenta</button><button data-g="on">Accesa</button></div>
+      <div id="goalSet" style="margin-top:14px">
+        <label>Valore — <span id="goalUnit"></span></label>
+        <div class="row" style="align-items:center">
+          <button class="mini" id="goalMinus" style="width:52px;height:52px;font-size:26px">−</button>
+          <div id="goalVal" style="flex:1;text-align:center;font-family:var(--num);font-size:34px;font-weight:600">–</div>
+          <button class="mini" id="goalPlus" style="width:52px;height:52px;font-size:26px">+</button>
+        </div>
+        <p class="hint" id="goalHint"></p>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="ttitle" style="font-size:22px">Schema “Cambio di tono”</div>
       <p class="hint" style="margin-top:0">Sequenza di fasi: il paziente deve <b>mantenere</b> la voce dentro un intervallo di frequenza per un tempo. Fino a 5 fasi (Hz e secondi).</p>
       <div id="tonoMgr"></div>
@@ -639,7 +654,7 @@ const THEMES = {
 };
 const THEME_ORDER = ["notte","ambra","indaco","foresta","chiaro"];
 
-const DEF_SET = { display:"livello", theme:"notte", orient:"paziente", onsetNorm:-38, onsetLoud:-30, medicoEmail:"", maxDur:15, cal:null,
+const DEF_SET = { display:"livello", theme:"notte", orient:"paziente", onsetNorm:-38, onsetLoud:-30, medicoEmail:"", maxDur:15, cal:null, goal:{on:false,unit:"",v:null},
   serie:{ order:["max","forte","normale","glissando"], active:{max:true,forte:true,normale:true,glissando:true}, reps:{max:1,forte:1,normale:1,glissando:1} },
   tono:{ stages:[ {fmin:100,fmax:150,tmin:3,tmax:5,color:"verde"}, {fmin:150,fmax:220,tmin:3,tmax:5,color:"azzurro"}, {fmin:220,fmax:300,tmin:3,tmax:5,color:"rosa"} ] } };
 const SKEY="voce_settings";
@@ -655,6 +670,8 @@ function loadSet(){
     out.tono.stages.forEach((s,i)=>{ if(!s.color) s.color=["verde","azzurro","rosa"][i%3]; });
     if(typeof out.maxDur!=="number") out.maxDur=DEF_SET.maxDur;
     out.maxDur=Math.min(60, Math.max(5, out.maxDur));
+    const g=s.goal||{}; // linea obiettivo: valore nell'unità mostrata quando è stata impostata
+    out.goal={ on:!!g.on, unit:typeof g.unit==="string"?g.unit:"", v:Number.isFinite(g.v)?g.v:null };
     out.cal=sanitizeCal(s.cal);
     if(!["livello","db","spl"].includes(out.display)) out.display="livello";
     if(out.display==="spl" && !out.cal) out.display="livello"; // niente SPL senza calibrazione
@@ -1184,9 +1201,46 @@ const volScale = () => splMode()
   ? { unit:"dB SPL", to:db=>db+SET.cal.off, from:v=>v-SET.cal.off }
   : SET.display==="db" ? { unit:"dB", to:db=>db, from:v=>v }
   : { unit:"", to:db=>norm01(db)*100, from:v=>v/100*55-60 };
-let scope, sctx, scopeHist=[], gridBg="#0f1a24";
+let scope, sctx, scopeHist=[], gridBg="#0f1a24", goalCol="#5fd38a";
 function clearScope(){ scope=$("scope"); sctx=scope.getContext("2d"); scopeHist=[];
-  gridBg=getComputedStyle(document.documentElement).getPropertyValue("--panel2").trim()||gridBg; drawScope(); }
+  const cs=getComputedStyle(document.documentElement);
+  gridBg=cs.getPropertyValue("--panel2").trim()||gridBg; goalCol=cs.getPropertyValue("--good").trim()||goalCol; drawScope(); }
+
+/* Linea obiettivo: riga verde a un valore scelto dal clinico; il tracciato sopra la riga
+   diventa verde. Vale solo nell'unità in cui è stata impostata (cambiando calibrazione
+   o visualizzazione va reimpostata, altrimenti indicherebbe un livello diverso). */
+function goalLv(){
+  const g=SET.goal; if(!g || !g.on || !Number.isFinite(g.v)) return null;
+  const sc=volScale(); if(sc.unit!==g.unit) return null;
+  const lv=norm01(sc.from(g.v)); return (lv>0.02 && lv<0.99) ? lv : null;
+}
+function drawGoal(w,h,lv){
+  const y=h-lv*(h-12);
+  // parte del tracciato sopra l'obiettivo, in verde
+  sctx.save(); sctx.beginPath(); sctx.rect(0,0,w,y); sctx.clip();
+  sctx.beginPath(); sctx.moveTo(0,h);
+  scopeHist.forEach((p,i)=>{ sctx.lineTo(i,h-p.level*(h-12)); });
+  sctx.lineTo(scopeHist.length,h); sctx.closePath();
+  sctx.globalAlpha=.35; sctx.fillStyle=goalCol; sctx.fill(); sctx.globalAlpha=1;
+  sctx.beginPath();
+  scopeHist.forEach((p,i)=>{ const yy=h-p.level*(h-12); i?sctx.lineTo(i,yy):sctx.moveTo(i,yy); });
+  sctx.strokeStyle=goalCol; sctx.lineWidth=2.5; sctx.stroke();
+  sctx.restore();
+  // la riga
+  sctx.save(); sctx.strokeStyle=goalCol; sctx.lineWidth=3;
+  sctx.beginPath(); sctx.moveTo(0,y); sctx.lineTo(w,y); sctx.stroke(); sctx.restore();
+}
+function drawGoalLabel(w,h,lv){
+  const last=scopeHist[scopeHist.length-1], reached = last && last.level>=lv;
+  const sx=(scope.clientWidth||w)/w, sy=(scope.clientHeight||h)/h;
+  const txt=(reached?"✓ ":"")+"obiettivo "+SET.goal.v;
+  sctx.save(); sctx.scale(1/sx,1/sy);
+  sctx.font="700 13px system-ui,-apple-system,sans-serif"; sctx.textBaseline="middle";
+  const tw=sctx.measureText(txt).width, x=w*sx-tw-12, y=Math.max(12,(h-lv*(h-12))*sy-12);
+  sctx.globalAlpha=.9; sctx.fillStyle=gridBg; sctx.fillRect(x-5,y-9,tw+10,18);
+  sctx.globalAlpha=1; sctx.fillStyle=goalCol; sctx.fillText(txt,x,y);
+  sctx.restore();
+}
 
 /* Griglia del volume nel grafico live, come in un fonometro: righe orizzontali col valore
    (dB SPL se calibrato, altrimenti dB o Livello). Stessa finestra di norm01: −60..−5 dBFS. */
@@ -1250,7 +1304,10 @@ function drawScope(){
   scopeHist.forEach((p,i)=>{ const y=h-p.level*(h-12); i?sctx.lineTo(i,y):sctx.moveTo(i,y); });
   sctx.strokeStyle=CTEAL; sctx.lineWidth=2; sctx.stroke();
   // niente linea del tono qui: su una griglia in dB confonderebbe (resta nel grafico dei risultati)
+  const glv=goalLv();
+  if(glv!==null) drawGoal(w,h,glv);
   drawGridLabels(w,h,grid);
+  if(glv!==null) drawGoalLabel(w,h,glv);
 }
 function drawScopeTono(w,h){
   const stages=SET.tono.stages;
@@ -1498,6 +1555,7 @@ $("roomSave2").addEventListener("click", ()=>{
 // Display dB / intensità / dB SPL
 function syncDisplaySeg(){
   document.querySelectorAll("#segDisplay button").forEach(x=>x.classList.toggle("on",x.dataset.d===SET.display));
+  renderGoal(); // l'unità dell'obiettivo segue la visualizzazione
 }
 document.querySelectorAll("#segDisplay button").forEach(b=>b.addEventListener("click",()=>{
   if(b.dataset.d==="spl" && !calOk()) return toast("Prima esegui la calibrazione dB SPL");
@@ -1741,6 +1799,33 @@ $("calSave").addEventListener("click", ()=>{
 applyTheme(SET.theme);
 
 renderRooms();
+
+/* ============================ LINEA OBIETTIVO (impostazione) ============================ */
+const GOAL_DEF = { "dB SPL":80, "dB":-20, "":70 };            // proposta iniziale per unità
+const goalUnitName = u => u || "Livello 0–100";
+const goalStep = () => volScale().unit==="" ? 5 : 1;
+function goalCur(){ const u=volScale().unit, g=SET.goal; return (g.unit===u && Number.isFinite(g.v)) ? g.v : GOAL_DEF[u]; }
+function goalSetVal(v){
+  const sc=volScale(), lo=Math.ceil(sc.to(-58)), hi=Math.floor(sc.to(-6));
+  SET.goal={ on:true, unit:sc.unit, v:Math.max(lo,Math.min(hi,Math.round(v))) };
+  saveSet(); renderGoal();
+}
+function renderGoal(){
+  const g=SET.goal, u=volScale().unit, stale = g.unit!==u && Number.isFinite(g.v);
+  document.querySelectorAll("#goalSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.g==="on")===!!g.on));
+  $("goalSet").style.display = g.on ? "" : "none";
+  $("goalUnit").textContent = goalUnitName(u);
+  $("goalVal").textContent = (g.unit===u && Number.isFinite(g.v)) ? g.v : "–";
+  $("goalHint").textContent = stale
+    ? `Era impostata in ${goalUnitName(g.unit)}: con la visualizzazione attuale non viene mostrata. Tocca − o + per reimpostarla.`
+    : "Il valore è nella stessa unità mostrata durante i test.";
+}
+document.querySelectorAll("#goalSeg button").forEach(b=>b.addEventListener("click",()=>{
+  if(b.dataset.g==="on") goalSetVal(goalCur());
+  else { SET.goal.on=false; saveSet(); renderGoal(); }
+}));
+$("goalMinus").addEventListener("click", ()=> goalSetVal(goalCur()-goalStep()));
+$("goalPlus").addEventListener("click", ()=> goalSetVal(goalCur()+goalStep()));
 
 /* ============================ AIUTO MICROFONO ============================ */
 /* L'app installata in Home gira DENTRO il browser: il permesso del microfono lo custodisce
