@@ -371,7 +371,7 @@
 
     <div class="card">
       <div class="ttitle" style="font-size:22px">Linea obiettivo</div>
-      <p class="hint" style="margin-top:0">Una riga verde nel grafico dei test di intensità: quando la voce la supera, il tracciato diventa verde. Utile per i pazienti in difficoltà.</p>
+      <p class="hint" style="margin-top:0">Una riga verde nel grafico di <b>Forte e lungo</b>: quando la voce la supera, il tracciato diventa verde. Il valore si può cambiare per ogni paziente.</p>
       <div class="seg" id="goalSeg"><button data-g="off">Spenta</button><button data-g="on">Accesa</button></div>
       <div id="goalSet" style="margin-top:14px">
         <label>Valore — <span id="goalUnit"></span></label>
@@ -654,8 +654,9 @@ const THEMES = {
 };
 const THEME_ORDER = ["notte","ambra","indaco","foresta","chiaro"];
 
+const SERIE_IDS=["forte","glissando","max"]; // "Normale e lungo" tolta su richiesta: la misura col cronometro
 const DEF_SET = { display:"livello", theme:"notte", orient:"paziente", onsetNorm:-38, onsetLoud:-30, medicoEmail:"", maxDur:15, cal:null, goal:{on:false,unit:"",v:null},
-  serie:{ order:["max","forte","normale","glissando"], active:{max:true,forte:true,normale:true,glissando:true}, reps:{max:1,forte:1,normale:1,glissando:1} },
+  serie:{ order:SERIE_IDS.slice(), active:{max:true,forte:true,normale:true,glissando:true}, reps:{max:1,forte:1,normale:1,glissando:1} },
   tono:{ stages:[ {fmin:100,fmax:150,tmin:3,tmax:5,color:"verde"}, {fmin:150,fmax:220,tmin:3,tmax:5,color:"azzurro"}, {fmin:220,fmax:300,tmin:3,tmax:5,color:"rosa"} ] } };
 const SKEY="voce_settings";
 let SET = loadSet();
@@ -664,7 +665,10 @@ function loadSet(){
     out.serie=Object.assign({},DEF_SET.serie,s.serie||{});
     out.serie.active=Object.assign({},DEF_SET.serie.active,(s.serie||{}).active||{});
     out.serie.reps=Object.assign({},DEF_SET.serie.reps,(s.serie||{}).reps||{});
-    if(!Array.isArray(out.serie.order)||out.serie.order.length!==4) out.serie.order=DEF_SET.serie.order.slice();
+    // tiene l'ordine scelto, ma solo con i test ammessi (le impostazioni salvate possono contenere "normale")
+    const ord=Array.isArray(out.serie.order) ? out.serie.order.filter((id,i,a)=>SERIE_IDS.includes(id) && a.indexOf(id)===i) : [];
+    SERIE_IDS.forEach(id=>{ if(!ord.includes(id)) ord.push(id); });
+    out.serie.order=ord;
     out.tono=Object.assign({},DEF_SET.tono,s.tono||{});
     if(!Array.isArray(out.tono.stages)||!out.tono.stages.length) out.tono.stages=JSON.parse(JSON.stringify(DEF_SET.tono.stages));
     out.tono.stages.forEach((s,i)=>{ if(!s.color) s.color=["verde","azzurro","rosa"][i%3]; });
@@ -1210,6 +1214,7 @@ function clearScope(){ scope=$("scope"); sctx=scope.getContext("2d"); scopeHist=
    diventa verde. Vale solo nell'unità in cui è stata impostata (cambiando calibrazione
    o visualizzazione va reimpostata, altrimenti indicherebbe un livello diverso). */
 function goalLv(){
+  if(!curTest || curTest.id!=="forte") return null;          // solo "Forte e lungo"
   const g=SET.goal; if(!g || !g.on || !Number.isFinite(g.v)) return null;
   const sc=volScale(); if(sc.unit!==g.unit) return null;
   const lv=norm01(sc.from(g.v)); return (lv>0.02 && lv<0.99) ? lv : null;
@@ -1303,9 +1308,11 @@ function drawScope(){
   sctx.beginPath();
   scopeHist.forEach((p,i)=>{ const y=h-p.level*(h-12); i?sctx.lineTo(i,y):sctx.moveTo(i,y); });
   sctx.strokeStyle=CTEAL; sctx.lineWidth=2; sctx.stroke();
-  // niente linea del tono qui: su una griglia in dB confonderebbe (resta nel grafico dei risultati)
   const glv=goalLv();
   if(glv!==null) drawGoal(w,h,glv);
+  // linea del tono (60..400 Hz, scala propria: non va letta sulla griglia dei dB). Richiesta dalla
+  // logopedista: l'instabilità che compare dopo qualche secondo è un feedback utile allo sforzo
+  sctx.strokeStyle=CLIVE; drawF0Line(f0=> h-((f0-60)/340)*(h-12), 10, 2);
   drawGridLabels(w,h,grid);
   if(glv!==null) drawGoalLabel(w,h,glv);
 }
@@ -1367,7 +1374,7 @@ SINGLE_ORDER.map(id=>TESTS.find(t=>t.id===id)).forEach((t,i)=>{
 function buildQueue(){
   const sc=SET.serie, q=[];
   sc.order.forEach(id=>{ if(sc.active[id]){ const reps=Math.max(1,sc.reps[id]||1); for(let k=0;k<reps;k++) q.push(id); } });
-  return q.length ? q : TESTS.map(t=>t.id);
+  return q.length ? q : SERIE_IDS.slice();
 }
 function updateSerieHint(){
   const names=SET.serie.order.filter(id=>SET.serie.active[id]).map(id=>{ const t=TESTS.find(x=>x.id===id); const r=SET.serie.reps[id]; return t.titolo+(r>1?` ×${r}`:""); });

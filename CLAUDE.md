@@ -24,7 +24,8 @@ Le due app condividono lo stesso "motore" audio duplicato nei due file:
 
 **Clinica**: Test singolo (solo 3, in quest'ordine: Forte e lungo · Cambio di tono ·
 Intensità massima — "Normale e lungo" tolta su richiesta, la misura col cronometro;
-resta nel Test in serie) · Test in serie · Cronometro · Storico ·
+tolta anche dal Test in serie, `SERIE_IDS`; resta solo per leggere lo storico vecchio)
+· Test in serie · Cronometro · Storico ·
 Dettato · QR paziente (con **foglio A4 stampabile** per il paziente: QR di
 installazione, permesso microfono, posizione del telefono; `#printSheet`, visibile
 solo in stampa) · Impostazioni e info. Storico su `localStorage`, export
@@ -99,13 +100,15 @@ Sono tutti nati da bug reali costati settimane. Prima di toccarli, capire perch�
    app, sui test di intensità (non nel Cambio di tono, che ha la sua scala in Hz).
    Righe con valori in dB SPL se calibrato, altrimenti dB o Livello; massimo ~7
    righe. Il canvas è stirato dal CSS: le etichette compensano con `scale(1/sx,1/sy)`.
-   La linea rossa del tono è stata tolta dal grafico live di questi test (sulla
-   griglia in dB confondeva); resta nel grafico dei risultati. `volScale` è
+   La linea rossa del tono resta nel grafico live (tolta e poi **rimessa su
+   richiesta**: la logopedista usa la sua instabilità dopo qualche secondo come
+   feedback per lo sforzo). Ha la sua scala 60–400 Hz, non va letta sulla griglia. `volScale` è
    l'unico pezzo diverso fra le app: la clinica ha calibrazione a offset, l'app
    paziente a due punti (`spl = a·dBFS + b`).
 
-   **Linea obiettivo** (`SET.goal = {on, unit, v}`, `goalLv`, `drawGoal`): riga
-   verde a un valore scelto dal clinico; il tracciato sopra la riga diventa verde e
+   **Linea obiettivo** (`SET.goal = {on, unit, v}`, `goalLv`, `drawGoal`): **solo
+   su Forte e lungo** (richiesta della logopedista; valori tipici 60–80 dB, diversi
+   per paziente). Riga verde a un valore scelto dal clinico; il tracciato sopra la riga diventa verde e
    compare "✓ obiettivo". Il valore vale **solo nell'unità in cui è stato impostato**
    (dB SPL / dB / Livello): se cambiano calibrazione o visualizzazione la riga
    sparisce e va reimpostata, per non indicare un livello sbagliato. Si imposta:
@@ -145,6 +148,15 @@ verificata la compatibilità iOS.
   cloud (a pagamento) o un'app nativa con riconoscimento Android nativo.
 - Eventuale guida fase-per-fase in tempo reale nel Cambio di tono (oggi la
   valutazione è a posteriori su tutta la registrazione).
+
+- **Serie LSVT LOUD** (richiesta, da costruire, entrambe le app; serve soprattutto
+  ai pazienti a casa): 15 Forte e lungo → 15 acuti → 15 gravi, non alternati.
+  Acuto/grave: conta che si **veda un cambio di tono**, senza soglie in Hz; vale se
+  tenuto **5 s dal momento del cambio**, altrimenti si ripete; **3 s di pausa** e
+  ripartenza automatica. A fine serie: frequenze raggiunte in acuto e in grave, da
+  confrontare nel tempo. Nello storico va solo la valutazione iniziale, non le 45.
+  Obiettivo dichiarato: arrivare pian piano a 45 vocalizzi al giorno.
+- La logopedista **non ha un fonometro**: la calibrazione SPL per ora non si usa.
 
 ## Storia dei feedback clinici (sintesi)
 
