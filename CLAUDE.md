@@ -31,9 +31,12 @@ installazione, permesso microfono, posizione del telefono; `#printSheet`, visibi
 solo in stampa) · Impostazioni e info. Storico su `localStorage`, export
 CSV, invio via email, anagrafica paziente chiesta **al salvataggio** (non prima).
 
-**Paziente**: solo 3 esercizi (Intensità massima, Forte e lungo, Cambio di tono)
-+ Cronometro + Dettato + check distanza. **Niente storico, niente salvataggi,
-niente impostazioni.** Esclusa "Normale e lungo" perché puramente valutativa.
+**Paziente**: 3 esercizi (Intensità massima, Forte e lungo, Cambio di tono)
++ **Serie LSVT** + Cronometro + Dettato + check distanza. **Niente storico, niente
+salvataggi, niente impostazioni**, con due eccezioni volute: l'area del clinico
+(pressione lunga sul logo: calibrazione, linea obiettivo, ripetizioni LSVT) e gli
+**ultimi 20 risultati della Serie LSVT** (`voce_lsvt_ultimi`), per confrontare le
+frequenze nel tempo. Esclusa "Normale e lungo" perché puramente valutativa.
 
 ## I test
 
@@ -119,6 +122,24 @@ Sono tutti nati da bug reali costati settimane. Prima di toccarli, capire perch�
    rilascio (`voce-vN` e `voce-paz-vN`), altrimenti i telefoni servono la versione
    vecchia. Se una PWA è già installata, spesso serve disinstallare + hard refresh.
 
+## Serie LSVT (entrambe le app, modulo identico salvo `LS_REMEMBER`)
+
+Esercizio quotidiano LSVT LOUD, richiesto dalla logopedista: N Forte e lungo → N
+acuti → N gravi, **non alternati**; N regolabile 1–15 (`SET.lsvt.reps`, default 15,
+"si sale pian piano a 45 al giorno"). Si avvia una volta e va da sola: **3 s di
+pausa** tra i vocalizzi, 5 s prima di ogni blocco. Ogni vocalizzo si chiude quando la
+voce si ferma (non è registrazione continua: il vincolo 3 non c'entra).
+- Forte e lungo: vale se dura **≥ 5 s**; c'è la linea obiettivo.
+- Acuti/gravi: **nessuna soglia in Hz** (scelta della logopedista: conta che si veda
+  il cambio). Tono di partenza = mediana dei primi 0,5 s; cambio = ≥ 2 semitoni nella
+  direzione giusta per 0,2 s; vale se tenuto **5 s dal cambio**. Grafico del tono su
+  scala logaritmica con riga di partenza e soglia.
+- Se non vale, **si ripete lo stesso vocalizzo**. I 5 s si contano sull'ultimo istante
+  con voce (`tv`), non sul tempo trascorso: un'app ferma un attimo non regala secondi.
+- Riepilogo: durata media/massima, acuto più alto, grave più basso (mediana del tono
+  nei 5 s tenuti). Nello storico clinico **non** si salva (lì va solo la valutazione).
+- Wake Lock dello schermo durante la serie (dura minuti senza tocchi).
+
 ## Impostazioni (solo app clinica)
 
 Temi (5), visualizzazione dB/Livello, orientamento comandi (paziente / medico
@@ -149,13 +170,9 @@ verificata la compatibilità iOS.
 - Eventuale guida fase-per-fase in tempo reale nel Cambio di tono (oggi la
   valutazione è a posteriori su tutta la registrazione).
 
-- **Serie LSVT LOUD** (richiesta, da costruire, entrambe le app; serve soprattutto
-  ai pazienti a casa): 15 Forte e lungo → 15 acuti → 15 gravi, non alternati.
-  Acuto/grave: conta che si **veda un cambio di tono**, senza soglie in Hz; vale se
-  tenuto **5 s dal momento del cambio**, altrimenti si ripete; **3 s di pausa** e
-  ripartenza automatica. A fine serie: frequenze raggiunte in acuto e in grave, da
-  confrontare nel tempo. Nello storico va solo la valutazione iniziale, non le 45.
-  Obiettivo dichiarato: arrivare pian piano a 45 vocalizzi al giorno.
+- **Serie LSVT: verifica sul campo** (fatta il 26/10/2026, provata solo con voce
+  simulata). Da controllare con pazienti veri soprattutto la soglia del cambio di
+  tono (`LS_ST` = 2 semitoni) e gli errori d'ottava del rilevatore di tono.
 - La logopedista **non ha un fonometro**: la calibrazione SPL per ora non si usa.
 
 ## Storia dei feedback clinici (sintesi)

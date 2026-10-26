@@ -196,6 +196,7 @@
     <div class="menu">
       <button class="mbtn" id="mSingle"><span class="mi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5" fill="var(--teal)" stroke="none"/></svg></span><span>Test singolo<span class="msub">Un esercizio a scelta</span></span></button>
       <button class="mbtn" id="mSerie"><span class="mi"><svg viewBox="0 0 24 24"><path d="M8 6h11M8 12h11M8 18h11"/><circle cx="4" cy="6" r="1.5" fill="var(--teal)" stroke="none"/><circle cx="4" cy="12" r="1.5" fill="var(--teal)" stroke="none"/><circle cx="4" cy="18" r="1.5" fill="var(--teal)" stroke="none"/></svg></span><span>Test in serie<span class="msub">Sequenza guidata di esercizi</span></span></button>
+      <button class="mbtn" id="mLsvt"><span class="mi"><svg viewBox="0 0 24 24"><path d="M4 18V12M9.3 18V8M14.6 18V5M20 18V10"/></svg></span><span>Serie LSVT<span class="msub">Forte e lungo, acuti, gravi · parte da sola</span></span></button>
       <button class="mbtn" id="mCrono"><span class="mi"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 13V9M9 2h6"/></svg></span><span>Cronometro<span class="msub">Timer digitale</span></span></button>
       <button class="mbtn" id="mHist"><span class="mi"><svg viewBox="0 0 24 24"><path d="M3.1 12a9 9 0 1 0 2.7-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 8v4.5l3 1.7"/></svg></span><span>Storico<span class="msub">Sessioni salvate</span></span></button>
       <button class="mbtn" id="mSTT"><span class="mi"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"/></svg></span><span>Dettato<span class="msub">Trascrive a schermo ciò che il paziente dice</span></span></button>
@@ -385,6 +386,16 @@
     </div>
 
     <div class="card">
+      <div class="ttitle" style="font-size:22px">Serie LSVT</div>
+      <p class="hint" style="margin-top:0">Ripetizioni per ogni blocco (Forte e lungo, acuti, gravi). Si può partire da poche e salire fino a 15.</p>
+      <div class="row" style="align-items:center">
+        <button class="mini" id="lsRepsMinus" style="width:52px;height:52px;font-size:26px">−</button>
+        <div id="lsRepsVal" style="flex:1;text-align:center;font-family:var(--num);font-size:34px;font-weight:600">15</div>
+        <button class="mini" id="lsRepsPlus" style="width:52px;height:52px;font-size:26px">+</button>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="ttitle" style="font-size:22px">Schema “Cambio di tono”</div>
       <p class="hint" style="margin-top:0">Sequenza di fasi: il paziente deve <b>mantenere</b> la voce dentro un intervallo di frequenza per un tempo. Fino a 5 fasi (Hz e secondi).</p>
       <div id="tonoMgr"></div>
@@ -562,6 +573,33 @@
     </div>
   </section>
 
+  <!-- SERIE LSVT -->
+  <section id="vLsvt" class="view">
+    <div class="stage">
+      <div class="step" id="lsStep">Serie LSVT</div>
+      <div class="ttitle" id="lsTitle">—</div>
+      <div class="instr" id="lsInstr"></div>
+      <div id="lsCount" style="font-family:var(--num);font-size:22px;font-weight:700;color:var(--teal);margin:4px 0 10px"></div>
+      <canvas class="scope" id="lsScope" width="528" height="220" style="height:220px"></canvas>
+      <div id="lsBig" style="font-family:var(--num);font-size:60px;font-weight:700;line-height:1.1;min-height:68px;margin-top:10px"></div>
+      <div class="status" id="lsStatus" style="font-size:19px;margin-top:2px"></div>
+      <div class="liverow">
+        <div class="livecell"><div class="v" id="lsHz">–</div><div class="k">Hz</div></div>
+        <div class="livecell"><div class="v" id="lsT">0.0</div><div class="k">secondi</div></div>
+      </div>
+      <button class="btn sec" id="lsStop" style="margin-top:16px">Ferma la serie</button>
+    </div>
+  </section>
+  <section id="vLsvtSum" class="view">
+    <div class="card">
+      <div class="ttitle" style="font-size:22px">Serie LSVT · riepilogo</div>
+      <div id="lsSum"></div>
+      <div id="lsHist"></div>
+    </div>
+    <button class="btn" id="lsAgain">Ricomincia</button>
+    <button class="btn ghost" id="lsHome" style="margin-top:10px">Menu</button>
+  </section>
+
   <!-- AIUTO MICROFONO -->
   <section id="vMic" class="view">
     <div class="card">
@@ -655,7 +693,7 @@ const THEMES = {
 const THEME_ORDER = ["notte","ambra","indaco","foresta","chiaro"];
 
 const SERIE_IDS=["forte","glissando","max"]; // "Normale e lungo" tolta su richiesta: la misura col cronometro
-const DEF_SET = { display:"livello", theme:"notte", orient:"paziente", onsetNorm:-38, onsetLoud:-30, medicoEmail:"", maxDur:15, cal:null, goal:{on:false,unit:"",v:null},
+const DEF_SET = { display:"livello", theme:"notte", orient:"paziente", onsetNorm:-38, onsetLoud:-30, medicoEmail:"", maxDur:15, cal:null, goal:{on:false,unit:"",v:null}, lsvt:{reps:15},
   serie:{ order:SERIE_IDS.slice(), active:{max:true,forte:true,normale:true,glissando:true}, reps:{max:1,forte:1,normale:1,glissando:1} },
   tono:{ stages:[ {fmin:100,fmax:150,tmin:3,tmax:5,color:"verde"}, {fmin:150,fmax:220,tmin:3,tmax:5,color:"azzurro"}, {fmin:220,fmax:300,tmin:3,tmax:5,color:"rosa"} ] } };
 const SKEY="voce_settings";
@@ -676,6 +714,7 @@ function loadSet(){
     out.maxDur=Math.min(60, Math.max(5, out.maxDur));
     const g=s.goal||{}; // linea obiettivo: valore nell'unità mostrata quando è stata impostata
     out.goal={ on:!!g.on, unit:typeof g.unit==="string"?g.unit:"", v:Number.isFinite(g.v)?g.v:null };
+    const L=s.lsvt||{}; out.lsvt={ reps:Math.min(15, Math.max(1, Math.round(Number(L.reps)||15))) };
     out.cal=sanitizeCal(s.cal);
     if(!["livello","db","spl"].includes(out.display)) out.display="livello";
     if(out.display==="spl" && !out.cal) out.display="livello"; // niente SPL senza calibrazione
@@ -1206,7 +1245,7 @@ const volScale = () => splMode()
   : SET.display==="db" ? { unit:"dB", to:db=>db, from:v=>v }
   : { unit:"", to:db=>norm01(db)*100, from:v=>v/100*55-60 };
 let scope, sctx, scopeHist=[], gridBg="#0f1a24", goalCol="#5fd38a";
-function clearScope(){ scope=$("scope"); sctx=scope.getContext("2d"); scopeHist=[];
+function clearScope(id){ scope=$(id||"scope"); sctx=scope.getContext("2d"); scopeHist=[];
   const cs=getComputedStyle(document.documentElement);
   gridBg=cs.getPropertyValue("--panel2").trim()||gridBg; goalCol=cs.getPropertyValue("--good").trim()||goalCol; drawScope(); }
 
@@ -1671,7 +1710,7 @@ function openSettings(){
   syncDisplaySeg();
   document.querySelectorAll("#segOrient button").forEach(x=>x.classList.toggle("on",x.dataset.o===SET.orient));
   $("medEmail").value = SET.medicoEmail||"";
-  renderThemes(); setSliders(); renderRoomMgr(); renderSerie(); renderTono(); renderCalState();
+  renderThemes(); setSliders(); renderRoomMgr(); renderSerie(); renderTono(); renderCalState(); renderLsReps();
   showView("vInfo");
 }
 
@@ -1806,6 +1845,208 @@ $("calSave").addEventListener("click", ()=>{
 applyTheme(SET.theme);
 
 renderRooms();
+
+/* ============================ SERIE LSVT ============================ */
+/* Esercizio quotidiano LSVT LOUD: N "Forte e lungo", poi N acuti, poi N gravi (non alternati).
+   Si avvia una volta e va da sola: 3 s di pausa tra un vocalizzo e l'altro. Ogni vocalizzo si
+   chiude quando la voce si ferma: NON è la registrazione continua di Intensità massima e Cambio
+   di tono, che restano come sono.
+   - Forte e lungo: vale se dura almeno 5 s (mostra la durata; c'è la linea obiettivo).
+   - Acuti / gravi: nessuna soglia in Hz (richiesta della logopedista): conta che si veda il
+     cambio di tono rispetto al tono di partenza, tenuto 5 s da quel momento.
+   Se un vocalizzo non vale, si ripete lo stesso. A fine serie: frequenze raggiunte. */
+const LS_REMEMBER = false;  // app clinica: più pazienti sullo stesso telefono, niente confronti automatici
+const LS_HOLD = 5;                       // secondi richiesti
+const LS_PAUSE = 3, LS_PAUSE_BLOCK = 5;  // pausa tra vocalizzi / prima di ogni blocco
+const LS_ST = 2;                         // cambio di tono minimo, in semitoni (~12%): "basta che si veda"
+const LS_SIL = 0.5;                      // silenzio che chiude il vocalizzo
+const LS_KEY = "voce_lsvt_ultimi";
+const LS_BLOCKS = [
+  { id:"forte", titolo:"Forte e lungo", istr:'<b>“A” FORTE</b> e lunga, in un fiato: almeno <b>5 secondi</b>.' },
+  { id:"acuto", titolo:"Acuti", istr:'Parti dal tuo tono normale, poi <b>sali</b> e <b>tieni</b> per 5 secondi.' },
+  { id:"grave", titolo:"Gravi", istr:'Parti dal tuo tono normale, poi <b>scendi</b> e <b>tieni</b> per 5 secondi.' },
+];
+let ls=null, lsRaf=0, lsWake=null, lsShown={};
+
+const lsReps = () => SET.lsvt.reps;
+const lsOnset = B => B.id==="forte" ? SET.onsetLoud : SET.onsetNorm;
+// scrive nel DOM solo se cambia (il ciclo gira 60 volte al secondo)
+function lsSet(id, html, cls){
+  const k=html+"|"+cls; if(lsShown[id]===k) return; lsShown[id]=k;
+  const el=$(id); el.innerHTML=html; if(cls!==undefined) el.className="status "+cls;
+}
+function lsCount(){
+  const B=LS_BLOCKS[ls.bi], N=lsReps(), n=ls.ok[ls.bi].length;
+  $("lsStep").textContent=`Serie LSVT · blocco ${ls.bi+1} di ${LS_BLOCKS.length}`;
+  $("lsCount").textContent=`${B.titolo} · ${Math.min(n+1,N)} di ${N}`;
+}
+function lsShowBlock(){
+  const B=LS_BLOCKS[ls.bi];
+  $("lsTitle").textContent=B.titolo; $("lsInstr").innerHTML=B.istr;
+  curTest = B.id==="forte" ? TESTS.find(t=>t.id==="forte") : { id:"lsvt" };  // per griglia/obiettivo
+  clearScope("lsScope"); lsDraw(B,null); lsCount();
+}
+
+async function lsStart(){
+  if(!await initMic()) return;
+  ls={ bi:0, ok:[[],[],[]], phase:"pause", until:ac.currentTime+LS_PAUSE_BLOCK, rep:null };
+  lsShown={};
+  document.querySelector("#vLsvt .stage").classList.toggle("flip", SET.orient==="medico");
+  lsShowBlock(); showView("vLsvt");
+  lsSet("lsStatus", "Si comincia: "+LS_BLOCKS[0].titolo, "");
+  $("lsHz").textContent="–"; $("lsT").textContent="0.0";
+  lsWakeOn();
+  cancelAnimationFrame(lsRaf); lsLoop();
+}
+function lsHalt(){ cancelAnimationFrame(lsRaf); lsRaf=0; lsWakeOff(); }
+
+function lsLoop(){
+  lsRaf=requestAnimationFrame(lsLoop);
+  analyser.getFloatTimeDomainData(buf);
+  const { rms, f0 } = detect(buf, sr);
+  const db=dbfs(rms), now=ac.currentTime, B=LS_BLOCKS[ls.bi];
+  $("lsHz").textContent = f0>0 ? f0.toFixed(0) : "–";
+
+  if(ls.phase==="pause"){
+    const left=ls.until-now;
+    if(left>0){ lsSet("lsBig", String(Math.ceil(left))); return; }
+    ls.phase="wait"; scopeHist=[]; lsDraw(B,null);
+    lsSet("lsBig","Via!");
+    lsSet("lsStatus", B.id==="forte" ? "Voce forte!" : "Parti dal tuo tono normale…", "armed");
+  }
+  if(ls.phase==="wait"){
+    if(db<=lsOnset(B)) return;
+    ls.phase="rec"; ls.rep={ t0:now, last:now, fr:[], base:null, since:null, tChange:null, okAt:null };
+    scopeHist=[];
+  }
+  // ---- vocalizzo in corso ----
+  const r=ls.rep, t=now-r.t0;
+  r.fr.push({ t, db, f0 }); if(db>lsOnset(B)-6) r.last=now;
+  pushScope(norm01(db), f0);
+  $("lsT").textContent=t.toFixed(1);
+  // i 5 s si contano fino all'ultimo istante in cui la voce si sente davvero (tv), non sul tempo
+  // trascorso: se l'app resta ferma un attimo (schermo, app in secondo piano) non "regala" secondi
+  const tv=r.last-r.t0;
+  if(B.id==="forte"){
+    if(!r.okAt && tv>=LS_HOLD){ r.okAt=tv; lsSet("lsBig","✓"); lsSet("lsStatus","5 secondi! Continua finché hai fiato","rec"); }
+    else if(!r.okAt){ lsSet("lsBig", String(Math.ceil(LS_HOLD-tv))); lsSet("lsStatus","Tieni!","rec"); }
+  } else {
+    const dir = B.id==="acuto" ? 1 : -1;
+    if(r.base===null){
+      const v=r.fr.filter(x=>x.f0>0);
+      if(v.length>=10 && v[v.length-1].t-v[0].t>=0.5){
+        r.base=median(v.filter(x=>x.t<=v[0].t+0.5).map(x=>x.f0));
+        lsSet("lsBig", dir>0?"↑":"↓"); lsSet("lsStatus", dir>0?"Ora sali!":"Ora scendi!", "armed");
+      }
+    } else if(r.tChange===null){
+      const st=lsSemi(r);
+      if(st!==null && st*dir>=LS_ST){ if(r.since===null) r.since=t; if(t-r.since>=0.2) r.tChange=r.since; }
+      else r.since=null;
+    }
+    if(r.tChange!==null && !r.okAt){
+      const left=LS_HOLD-(tv-r.tChange);
+      if(left<=0){ r.okAt=tv; lsSet("lsBig","✓"); lsSet("lsStatus","Fatto! Puoi fermarti","rec"); }
+      else { lsSet("lsBig", String(Math.ceil(left))); lsSet("lsStatus","Tieni!","rec"); }
+    }
+  }
+  lsDraw(B,r);
+  if((now-r.last>LS_SIL && t>0.3) || t>60) lsEndRep(B,r);   // voce ferma (o tetto di sicurezza)
+}
+// tono attuale (mediana degli ultimi 0,25 s) in semitoni rispetto al tono di partenza
+function lsSemi(r){
+  const tn=r.fr[r.fr.length-1].t, v=r.fr.filter(x=>x.f0>0 && x.t>=tn-0.25).map(x=>x.f0);
+  return v.length<4 ? null : 12*Math.log2(median(v)/r.base);
+}
+function lsEndRep(B,r){
+  const N=lsReps(); let msg;
+  if(r.okAt){
+    if(B.id==="forte"){ const dur=r.last-r.t0; ls.ok[ls.bi].push({ dur }); msg=`✓ ${dur.toFixed(1)} s`; }
+    else {
+      const hold=r.fr.filter(x=>x.f0>0 && x.t>=r.tChange && x.t<=r.tChange+LS_HOLD).map(x=>x.f0);
+      const hz=median(hold); ls.ok[ls.bi].push({ hz }); msg=`✓ ${Math.round(hz)} Hz`;
+    }
+  } else {
+    msg = B.id==="forte" ? "Meno di 5 secondi — si ripete"
+        : r.base===null ? "Non sento il tono — si ripete"
+        : r.tChange===null ? "Non vedo il cambio di tono — si ripete"
+        : "Interrotto prima dei 5 secondi — si ripete";
+  }
+  ls.phase="pause";
+  if(ls.ok[ls.bi].length>=N){
+    if(ls.bi+1>=LS_BLOCKS.length){ lsFinish(); return; }
+    ls.bi++; ls.until=ac.currentTime+LS_PAUSE_BLOCK; lsShowBlock();
+    lsSet("lsStatus", `${msg} · ora: <b>${LS_BLOCKS[ls.bi].titolo}</b>`, r.okAt?"rec":"armed");
+  } else {
+    ls.until=ac.currentTime+LS_PAUSE; lsCount();
+    lsSet("lsStatus", msg, r.okAt?"rec":"armed");
+  }
+}
+
+// grafico: Forte e lungo = volume (griglia, obiettivo, tono); acuti/gravi = tono su scala logaritmica
+function lsDraw(B,r){
+  if(B.id==="forte"){ drawScope(); return; }
+  const w=scope.width, h=scope.height, L0=Math.log(70), L1=Math.log(500);
+  const lv=f=> Math.max(0,Math.min(1,(Math.log(f)-L0)/(L1-L0))), y=f=> h-lv(f)*(h-12);
+  sctx.clearRect(0,0,w,h);
+  const grid={ ticks:[100,150,200,300,400].map(f=>({ lv:lv(f), txt:String(f) })), unit:"Hz" };
+  drawGridLines(w,h,grid);
+  if(r && r.base){
+    const dir=B.id==="acuto"?1:-1, ft=r.base*Math.pow(2,dir*LS_ST/12);
+    sctx.save(); sctx.globalAlpha=.16; sctx.fillStyle=goalCol;             // zona "cambio fatto"
+    if(dir>0) sctx.fillRect(0,0,w,y(ft)); else sctx.fillRect(0,y(ft),w,h-y(ft));
+    sctx.globalAlpha=1; sctx.strokeStyle=goalCol; sctx.lineWidth=2; sctx.setLineDash([6,5]);
+    sctx.beginPath(); sctx.moveTo(0,y(ft)); sctx.lineTo(w,y(ft)); sctx.stroke();
+    sctx.setLineDash([]); sctx.strokeStyle=CMUTED; sctx.lineWidth=2;              // tono di partenza
+    sctx.beginPath(); sctx.moveTo(0,y(r.base)); sctx.lineTo(w,y(r.base)); sctx.stroke();
+    sctx.restore();
+  }
+  sctx.strokeStyle = (r && r.tChange!==null) ? goalCol : CLIVE;
+  drawF0Line(y, 12, 3);
+  drawGridLabels(w,h,grid);
+}
+
+function lsFinish(){
+  lsHalt();
+  const [f,a,g]=ls.ok, N=lsReps();
+  const d=f.map(x=>x.dur), ha=a.map(x=>x.hz), hg=g.map(x=>x.hz);
+  const res={ ts:Date.now(), reps:N,
+    f:{ n:f.length, med:d.length?median(d):null, max:d.length?Math.max(...d):null },
+    a:{ n:a.length, top:ha.length?Math.max(...ha):null, med:ha.length?median(ha):null },
+    g:{ n:g.length, low:hg.length?Math.min(...hg):null, med:hg.length?median(hg):null } };
+  const hz=v=> v===null?"–":Math.round(v)+" Hz", sec=v=> v===null?"–":v.toFixed(1).replace(".",",")+" s";
+  const row=(t,n,txt)=>`<div style="padding:12px 0;border-top:1px solid var(--line)"><b>${t}</b> <span style="color:var(--muted)">· ${n} di ${N}</span><br><span style="font-size:17px">${txt}</span></div>`;
+  $("lsSum").innerHTML =
+      row("Forte e lungo", res.f.n, `durata media <b>${sec(res.f.med)}</b> · più lungo <b>${sec(res.f.max)}</b>`)
+    + row("Acuti", res.a.n, `più alto <b>${hz(res.a.top)}</b> · media <b>${hz(res.a.med)}</b>`)
+    + row("Gravi", res.g.n, `più basso <b>${hz(res.g.low)}</b> · media <b>${hz(res.g.med)}</b>`);
+  $("lsHist").innerHTML="";
+  if(LS_REMEMBER){
+    let past=[]; try{ past=JSON.parse(localStorage.getItem(LS_KEY))||[]; }catch(e){}
+    if(res.f.n+res.a.n+res.g.n>0){ try{ localStorage.setItem(LS_KEY, JSON.stringify([res,...past].slice(0,20))); }catch(e){} }
+    if(past.length){
+      const td='style="padding:6px 4px;border-top:1px solid var(--line)"';
+      $("lsHist").innerHTML = `<div style="margin-top:16px;font-weight:700">Le volte precedenti</div>
+        <table style="width:100%;border-collapse:collapse;font-size:15px;margin-top:6px">
+        <tr style="color:var(--muted);text-align:left"><th ${td}>Data</th><th ${td}>Acuto</th><th ${td}>Grave</th><th ${td}>Forte</th></tr>`
+        + past.slice(0,5).map(p=>`<tr><td ${td}>${new Date(p.ts).toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit"})}</td><td ${td}>${hz(p.a.top)}</td><td ${td}>${hz(p.g.low)}</td><td ${td}>${sec(p.f.med)}</td></tr>`).join("")
+        + `</table>`;
+    }
+  }
+  showView("vLsvtSum");
+}
+
+// lo schermo non deve spegnersi durante la serie (dura diversi minuti senza tocchi)
+async function lsWakeOn(){ try{ if("wakeLock" in navigator) lsWake=await navigator.wakeLock.request("screen"); }catch(e){} }
+function lsWakeOff(){ try{ if(lsWake) lsWake.release(); }catch(e){} lsWake=null; }
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible" && lsRaf) lsWakeOn(); });
+
+$("mLsvt").addEventListener("click", lsStart);
+$("lsAgain").addEventListener("click", lsStart);
+$("lsStop").addEventListener("click", ()=>{ if(ls) lsFinish(); });
+$("lsHome").addEventListener("click", ()=> showView("vMenu"));
+function renderLsReps(){ $("lsRepsVal").textContent=SET.lsvt.reps; }
+$("lsRepsMinus").addEventListener("click", ()=>{ SET.lsvt.reps=Math.max(1,SET.lsvt.reps-1); saveSet(); renderLsReps(); });
+$("lsRepsPlus").addEventListener("click", ()=>{ SET.lsvt.reps=Math.min(15,SET.lsvt.reps+1); saveSet(); renderLsReps(); });
 
 /* ============================ LINEA OBIETTIVO (impostazione) ============================ */
 const GOAL_DEF = { "dB SPL":80, "dB":-20, "":70 };            // proposta iniziale per unità
