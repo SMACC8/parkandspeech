@@ -196,7 +196,7 @@
     <div class="menu">
       <button class="mbtn" id="mSingle"><span class="mi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5" fill="var(--teal)" stroke="none"/></svg></span><span>Test singolo<span class="msub">Un esercizio a scelta</span></span></button>
       <button class="mbtn" id="mSerie"><span class="mi"><svg viewBox="0 0 24 24"><path d="M8 6h11M8 12h11M8 18h11"/><circle cx="4" cy="6" r="1.5" fill="var(--teal)" stroke="none"/><circle cx="4" cy="12" r="1.5" fill="var(--teal)" stroke="none"/><circle cx="4" cy="18" r="1.5" fill="var(--teal)" stroke="none"/></svg></span><span>Test in serie<span class="msub">Sequenza guidata di esercizi</span></span></button>
-      <button class="mbtn" id="mLsvt"><span class="mi"><svg viewBox="0 0 24 24"><path d="M4 18V12M9.3 18V8M14.6 18V5M20 18V10"/></svg></span><span>Serie LSVT<span class="msub">Forte e lungo, acuti, gravi · parte da sola</span></span></button>
+      <button class="mbtn" id="mLsvt"><span class="mi"><svg viewBox="0 0 24 24"><path d="M4 18V12M9.3 18V8M14.6 18V5M20 18V10"/></svg></span><span>Esercizi in serie<span class="msub">Forte e lungo, acuti, gravi · parte da sola</span></span></button>
       <button class="mbtn" id="mCrono"><span class="mi"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 13V9M9 2h6"/></svg></span><span>Cronometro<span class="msub">Timer digitale</span></span></button>
       <button class="mbtn" id="mHist"><span class="mi"><svg viewBox="0 0 24 24"><path d="M3.1 12a9 9 0 1 0 2.7-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 8v4.5l3 1.7"/></svg></span><span>Storico<span class="msub">Sessioni salvate</span></span></button>
       <button class="mbtn" id="mSTT"><span class="mi"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"/></svg></span><span>Dettato<span class="msub">Trascrive a schermo ciò che il paziente dice</span></span></button>
@@ -386,7 +386,7 @@
     </div>
 
     <div class="card">
-      <div class="ttitle" style="font-size:22px">Serie LSVT</div>
+      <div class="ttitle" style="font-size:22px">Esercizi in serie</div>
       <p class="hint" style="margin-top:0">Ripetizioni per ogni blocco (Forte e lungo, acuti, gravi). Si può partire da poche e salire fino a 15.</p>
       <div class="row" style="align-items:center">
         <button class="mini" id="lsRepsMinus" style="width:52px;height:52px;font-size:26px">−</button>
@@ -576,10 +576,10 @@
     </div>
   </section>
 
-  <!-- SERIE LSVT -->
+  <!-- ESERCIZI IN SERIE (codice: ls…) -->
   <section id="vLsvt" class="view">
     <div class="stage">
-      <div class="step" id="lsStep">Serie LSVT</div>
+      <div class="step" id="lsStep">Esercizi in serie</div>
       <div class="ttitle" id="lsTitle">—</div>
       <div class="instr" id="lsInstr"></div>
       <div id="lsCount" style="font-family:var(--num);font-size:22px;font-weight:700;color:var(--teal);margin:4px 0 10px"></div>
@@ -595,7 +595,7 @@
   </section>
   <section id="vLsvtSum" class="view">
     <div class="card">
-      <div class="ttitle" style="font-size:22px">Serie LSVT · riepilogo</div>
+      <div class="ttitle" style="font-size:22px">Esercizi in serie · riepilogo</div>
       <div id="lsSum"></div>
       <div id="lsHist"></div>
     </div>
@@ -1849,23 +1849,26 @@ applyTheme(SET.theme);
 
 renderRooms();
 
-/* ============================ SERIE LSVT ============================ */
+/* ======================== ESERCIZI IN SERIE ========================= */
+/* Nell'interfaccia NON si usa il nome "LSVT": è un marchio registrato (richiesta della logopedista). */
 /* Esercizio quotidiano LSVT LOUD: N "Forte e lungo", poi N acuti, poi N gravi (non alternati).
    Si avvia una volta e va da sola: 3 s di pausa tra un vocalizzo e l'altro. Ogni vocalizzo si
    chiude quando la voce si ferma: NON è la registrazione continua di Intensità massima e Cambio
    di tono, che restano come sono.
-   - Forte e lungo: vale se dura almeno 5 s (mostra la durata; c'è la linea obiettivo).
+   - Forte e lungo: vale anche se corto (da 1 s); 10 s è l'obiettivo mostrato, non un esame
+     (correzione della logopedista); c'è la linea obiettivo.
    - Acuti / gravi: nessuna soglia in Hz (richiesta della logopedista): conta che si veda il
      cambio di tono rispetto al tono di partenza, tenuto 5 s da quel momento.
    Se un vocalizzo non vale, si ripete lo stesso. A fine serie: frequenze raggiunte. */
 const LS_REMEMBER = false;  // app clinica: più pazienti sullo stesso telefono, niente confronti automatici
-const LS_HOLD = 5;                       // secondi richiesti
+const LS_HOLD = 5;                       // secondi richiesti negli acuti/gravi
+const LS_FORTE_MIN = 1, LS_FORTE_GOAL = 10; // Forte e lungo: vale da 1 s (filtra tosse/rumori); 10 s = obiettivo, non esame
 const LS_PAUSE = 3, LS_PAUSE_BLOCK = 5;  // pausa tra vocalizzi / prima di ogni blocco
 const lsSt = () => SET.lsvt.st;          // cambio di tono minimo, in semitoni (1/2/3 = Facile/Medio/Difficile)
 const LS_SIL = 0.5;                      // silenzio che chiude il vocalizzo
 const LS_KEY = "voce_lsvt_ultimi";
 const LS_BLOCKS = [
-  { id:"forte", titolo:"Forte e lungo", istr:'<b>“A” FORTE</b> e lunga, in un fiato: almeno <b>5 secondi</b>.' },
+  { id:"forte", titolo:"Forte e lungo", istr:'<b>“A” FORTE</b> e lunga, in un fiato: prova ad arrivare a <b>10 secondi</b>.' },
   { id:"acuto", titolo:"Acuti", istr:'Parti dal tuo tono normale, poi <b>sali</b> e <b>tieni</b> per 5 secondi.' },
   { id:"grave", titolo:"Gravi", istr:'Parti dal tuo tono normale, poi <b>scendi</b> e <b>tieni</b> per 5 secondi.' },
 ];
@@ -1880,7 +1883,7 @@ function lsSet(id, html, cls){
 }
 function lsCount(){
   const B=LS_BLOCKS[ls.bi], N=lsReps(), n=ls.ok[ls.bi].length;
-  $("lsStep").textContent=`Serie LSVT · blocco ${ls.bi+1} di ${LS_BLOCKS.length}`;
+  $("lsStep").textContent=`Esercizi in serie · blocco ${ls.bi+1} di ${LS_BLOCKS.length}`;
   $("lsCount").textContent=`${B.titolo} · ${Math.min(n+1,N)} di ${N}`;
 }
 function lsShowBlock(){
@@ -1931,8 +1934,9 @@ function lsLoop(){
   // trascorso: se l'app resta ferma un attimo (schermo, app in secondo piano) non "regala" secondi
   const tv=r.last-r.t0;
   if(B.id==="forte"){
-    if(!r.okAt && tv>=LS_HOLD){ r.okAt=tv; lsSet("lsBig","✓"); lsSet("lsStatus","5 secondi! Continua finché hai fiato","rec"); }
-    else if(!r.okAt){ lsSet("lsBig", String(Math.ceil(LS_HOLD-tv))); lsSet("lsStatus","Tieni!","rec"); }
+    if(!r.okAt && tv>=LS_FORTE_MIN) r.okAt=tv;   // vale anche se corto
+    if(tv>=LS_FORTE_GOAL){ lsSet("lsBig","✓"); lsSet("lsStatus","10 secondi! Continua finché hai fiato","rec"); }
+    else { lsSet("lsBig", String(Math.floor(tv))); lsSet("lsStatus","Tieni! Obiettivo 10 secondi","rec"); }
   } else {
     const dir = B.id==="acuto" ? 1 : -1;
     if(r.base===null){
@@ -1969,7 +1973,7 @@ function lsEndRep(B,r){
       const hz=median(hold); ls.ok[ls.bi].push({ hz }); msg=`✓ ${Math.round(hz)} Hz`;
     }
   } else {
-    msg = B.id==="forte" ? "Meno di 5 secondi — si ripete"
+    msg = B.id==="forte" ? "Troppo corto — si ripete"
         : r.base===null ? "Non sento il tono — si ripete"
         : r.tChange===null ? "Non vedo il cambio di tono — si ripete"
         : "Interrotto prima dei 5 secondi — si ripete";
@@ -2019,7 +2023,7 @@ function lsFinish(){
   const hz=v=> v===null?"–":Math.round(v)+" Hz", sec=v=> v===null?"–":v.toFixed(1).replace(".",",")+" s";
   const row=(t,n,txt)=>`<div style="padding:12px 0;border-top:1px solid var(--line)"><b>${t}</b> <span style="color:var(--muted)">· ${n} di ${N}</span><br><span style="font-size:17px">${txt}</span></div>`;
   $("lsSum").innerHTML =
-      row("Forte e lungo", res.f.n, `durata media <b>${sec(res.f.med)}</b> · più lungo <b>${sec(res.f.max)}</b>`)
+      row("Forte e lungo", res.f.n, `durata media <b>${sec(res.f.med)}</b> · più lungo <b>${sec(res.f.max)}</b> · arrivati a 10 s: <b>${d.filter(x=>x>=LS_FORTE_GOAL).length}</b>`)
     + row("Acuti", res.a.n, `più alto <b>${hz(res.a.top)}</b> · media <b>${hz(res.a.med)}</b>`)
     + row("Gravi", res.g.n, `più basso <b>${hz(res.g.low)}</b> · media <b>${hz(res.g.med)}</b>`);
   $("lsHist").innerHTML="";
