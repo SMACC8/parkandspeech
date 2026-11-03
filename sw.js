@@ -1,5 +1,5 @@
 /* Park&Speech — service worker (network-first, offline fallback) */
-const CACHE = "voce-v19";
+const CACHE = "voce-v20";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {

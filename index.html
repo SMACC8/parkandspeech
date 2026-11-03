@@ -195,8 +195,8 @@
     <button class="micwarn" id="micWarn">⚠️ Il microfono è bloccato per questa app — tocca qui per sistemarlo</button>
     <div class="menu">
       <button class="mbtn" id="mSingle"><span class="mi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5" fill="var(--teal)" stroke="none"/></svg></span><span>Test singolo<span class="msub">Un esercizio a scelta</span></span></button>
-      <button class="mbtn" id="mSerie"><span class="mi"><svg viewBox="0 0 24 24"><path d="M8 6h11M8 12h11M8 18h11"/><circle cx="4" cy="6" r="1.5" fill="var(--teal)" stroke="none"/><circle cx="4" cy="12" r="1.5" fill="var(--teal)" stroke="none"/><circle cx="4" cy="18" r="1.5" fill="var(--teal)" stroke="none"/></svg></span><span>Test in serie<span class="msub">Sequenza guidata di esercizi</span></span></button>
-      <button class="mbtn" id="mLsvt"><span class="mi"><svg viewBox="0 0 24 24"><path d="M4 18V12M9.3 18V8M14.6 18V5M20 18V10"/></svg></span><span>Esercizi in serie<span class="msub">Forte e lungo, acuti, gravi · parte da sola</span></span></button>
+      <button class="mbtn" id="mSerie"><span class="mi"><svg viewBox="0 0 24 24"><path d="M8 6h11M8 12h11M8 18h11"/><circle cx="4" cy="6" r="1.5" fill="var(--teal)" stroke="none"/><circle cx="4" cy="12" r="1.5" fill="var(--teal)" stroke="none"/><circle cx="4" cy="18" r="1.5" fill="var(--teal)" stroke="none"/></svg></span><span>Test in serie<span class="msub">Valutazione guidata · salva i risultati</span></span></button>
+      <button class="mbtn" id="mLsvt"><span class="mi"><svg viewBox="0 0 24 24"><path d="M4 18V12M9.3 18V8M14.6 18V5M20 18V10"/></svg></span><span>Esercizi in serie<span class="msub">Forte e lungo, acuti, gravi · parte da sola · non salva</span></span></button>
       <button class="mbtn" id="mCrono"><span class="mi"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 13V9M9 2h6"/></svg></span><span>Cronometro<span class="msub">Timer digitale</span></span></button>
       <button class="mbtn" id="mHist"><span class="mi"><svg viewBox="0 0 24 24"><path d="M3.1 12a9 9 0 1 0 2.7-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 8v4.5l3 1.7"/></svg></span><span>Storico<span class="msub">Sessioni salvate</span></span></button>
       <button class="mbtn" id="mSTT"><span class="mi"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"/></svg></span><span>Dettato<span class="msub">Trascrive a schermo ciò che il paziente dice</span></span></button>
@@ -1403,7 +1403,7 @@ function newSession(stanza){ session={ nome:"", cognome:"", id:"", stanza:stanza
   calOff: calOk() ? SET.cal.off : null, runs:[] }; } // offset SPL congelato: se ricalibri, lo storico resta corretto
 
 // build single test list — ordine voluto dalla logopedista; "Normale e lungo" escluso
-// (lo misura col solo cronometro). Resta disponibile nel Test in serie.
+// (lo misura col solo cronometro). Tolta anche dal Test in serie.
 const SINGLE_ORDER=["forte","glissando","max"];
 const sl=$("singleList");
 SINGLE_ORDER.map(id=>TESTS.find(t=>t.id===id)).forEach((t,i)=>{

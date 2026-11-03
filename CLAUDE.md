@@ -25,7 +25,8 @@ Le due app condividono lo stesso "motore" audio duplicato nei due file:
 **Clinica**: Test singolo (solo 3, in quest'ordine: Forte e lungo · Cambio di tono ·
 Intensità massima — "Normale e lungo" tolta su richiesta, la misura col cronometro;
 tolta anche dal Test in serie, `SERIE_IDS`; resta solo per leggere lo storico vecchio)
-· Test in serie · Cronometro · Storico ·
+· Test in serie (valutazione, salva nello storico: **da tenere** accanto agli Esercizi in
+serie, che non salvano; deciso dalla logopedista il 03/11/2026) · Cronometro · Storico ·
 Dettato · QR paziente (con **foglio A4 stampabile** per il paziente: QR di
 installazione, permesso microfono, posizione del telefono; `#printSheet`, visibile
 solo in stampa) · Impostazioni e info. Storico su `localStorage`, export
@@ -183,9 +184,6 @@ verificata la compatibilità iOS.
   tono (livello `SET.lsvt.st`, default Facile = 1 semitono: a 1 semitono il rischio è che basti
   un'oscillazione naturale della voce) e gli errori d'ottava del rilevatore di tono.
 - La logopedista **non ha un fonometro**: la calibrazione SPL per ora non si usa.
-- **Doppione "Test in serie" / "Esercizi in serie"** nell'app clinica: la logopedista propone
-  di tenerne uno solo. In attesa di sapere se usa il Test in serie per la valutazione (salva
-  nello storico); se sì, va tenuto e rinominato "Valutazione in serie".
 
 ## Storia dei feedback clinici (sintesi)
 
